@@ -28,8 +28,8 @@ const generateTweetContent = async (movie) => {
 
         const content = `#Movie #MovieList #${titleHashtag}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
         if (content) {
-            console.log(content)
-            // tweet(content)
+            // console.log(content)
+            tweet(content)
         }
     }
 }
