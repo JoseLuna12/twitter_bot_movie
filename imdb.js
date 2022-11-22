@@ -34,7 +34,7 @@ async function getCrew(id) {
 
 function getDirector(cast) {
     const director = cast.crew.filter(c => c.job == "Director")
-    if (director.length) {
+    if (director?.length) {
         const directorNames = director.reduce((val, curr, currentIndex) => {
             const separator = currentIndex > 0 && currentIndex != director.length - 1 ? " , " : " & "
             return `${val}${currentIndex == 0 ? "" : separator}${curr.name}`
@@ -55,10 +55,8 @@ async function getMovieByName(name) {
     const result = await axios.get(url.toString())
     const searchResult = result.data
 
-    console.log(JSON.stringify(searchResult))
-
     try {
-        if (searchResult) {
+        if (searchResult?.total_results != 0) {
             const currMovie = searchResult?.results?.[0] || {}
             const movieData = await getMovieDataById(currMovie.id)
             const cast = await getCrew(currMovie.id)

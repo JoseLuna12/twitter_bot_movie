@@ -18,7 +18,7 @@ const tweet = async (content) => {
 
 const generateTweetContent = async (movie) => {
     if (movie) {
-        const resume = movie.overview.length < 200 ? movie.overview : movie.tagline
+        const resume = movie?.overview?.length < 200 ? movie.overview : movie.tagline
         const release = movie.release?.split("-")[0]
         const vote = parseFloat(movie.vote_average).toFixed(1)
 
