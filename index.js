@@ -6,6 +6,7 @@ const app = express()
 const port = process.env.PORT || 4000;
 const { twitterClient } = require("./twitter")
 const { getMovieByName } = require("./imdb")
+const { resumeMovie } = require("./openai")
 
 const tweet = async (content) => {
     try {
@@ -15,22 +16,34 @@ const tweet = async (content) => {
     }
 }
 
-const generateTweetContent = (movie) => {
+const generateTweetContent = async (movie) => {
     if (movie) {
+        const resume = movie.overview.length < 200 ? movie.overview : movie.tagline
+        const release = movie.release?.split("-")[0]
         const vote = parseFloat(movie.vote_average).toFixed(1)
-        return `${movie.original_title} ${vote}/10`
+
+        const title = movie.original_title.replace(/^[a-zA-Z0-9_.-]*$/, "")
+        const titleHashtag = title.split(" ").join("")
+
+        const content = `#Movie #MovieList #${titleHashtag}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
+        if (content) {
+            console.log(content)
+            tweet(content)
+        }
     }
-    return ""
+}
+
+const tweetMovie = async (movieName) => {
+    const movie = await getMovieByName(movieName)
+    await generateTweetContent(movie)
 }
 
 app.get('/:movie', (req, res) => {
     if (req.headers.auth === process.env.PASS) {
         // tweet(req.params.movie);
-        const movie = getMovieByName(req.params.movie)
-        const content = generateTweetContent(movie)
-        if (content) {
-            tweet(content)
-        }
+        // const movie = getMovieByName(req.params.movie)
+        // const content = generateTweetContent(movie)
+        tweetMovie(req.params.movie)
         return res.send('ok');
     } else {
         return res.send("no auth")
