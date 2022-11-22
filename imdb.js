@@ -36,7 +36,7 @@ function getDirector(cast) {
     const director = cast.crew.filter(c => c.job == "Director")
     if (director?.length) {
         const directorNames = director.reduce((val, curr, currentIndex) => {
-            const separator = currentIndex > 0 && currentIndex != director.length - 1 ? " , " : " & "
+            const separator = currentIndex > 0 && currentIndex != director.length - 1 ? ", " : " & "
             return `${val}${currentIndex == 0 ? "" : separator}${curr.name}`
         }, "")
         return directorNames
