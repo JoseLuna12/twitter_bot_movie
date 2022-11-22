@@ -6,7 +6,7 @@ const app = express()
 const port = process.env.PORT || 4000;
 const { twitterClient } = require("./twitter")
 const { getMovieByName } = require("./imdb")
-const { resumeMovie } = require("./openai")
+// const { resumeMovie } = require("./openai")
 
 const tweet = async (content) => {
     try {
@@ -22,13 +22,14 @@ const generateTweetContent = async (movie) => {
         const release = movie.release?.split("-")[0]
         const vote = parseFloat(movie.vote_average).toFixed(1)
 
-        const title = movie.original_title.replace(/^[a-zA-Z0-9_.-]*$/, "")
+        const title = movie.original_title.replace(/^[a-zA-Z0-9_.-]*$/, "") || movie.original_title
+        console.log(title)
         const titleHashtag = title.split(" ").join("")
 
         const content = `#Movie #MovieList #${titleHashtag}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
         if (content) {
             console.log(content)
-            tweet(content)
+            // tweet(content)
         }
     }
 }
