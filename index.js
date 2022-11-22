@@ -35,15 +35,17 @@ const generateTweetContent = async (movie) => {
 }
 
 const tweetMovie = async (movieName) => {
-    const movie = await getMovieByName(movieName)
-    await generateTweetContent(movie)
+    try {
+        const movie = await getMovieByName(movieName)
+        await generateTweetContent(movie)
+    } catch (err) {
+        console.error("There was an error", err)
+    }
+
 }
 
 app.get('/:movie', (req, res) => {
     if (req.headers.auth === process.env.PASS) {
-        // tweet(req.params.movie);
-        // const movie = getMovieByName(req.params.movie)
-        // const content = generateTweetContent(movie)
         tweetMovie(req.params.movie)
         return res.send('ok');
     } else {

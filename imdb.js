@@ -9,27 +9,39 @@ async function getMovieDataById(id) {
     const url = new URL(`/3/movie/${id}`, BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
-    const result = await axios.get(url.toString())
-    const searchResult = result.data
-    return searchResult
+    try {
+        const result = await axios.get(url.toString())
+        const searchResult = result.data
+        return searchResult
+    }
+    catch (e) {
+        return {}
+    }
 }
 
 async function getCrew(id) {
     const url = new URL(`/3/movie/${id}/credits`, BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
-    const result = await axios.get(url.toString())
-    const searchResult = result.data
-    return searchResult
+    try {
+        const result = await axios.get(url.toString())
+        const searchResult = result.data
+        return searchResult
+    } catch {
+        return {}
+    }
 }
 
 function getDirector(cast) {
     const director = cast.crew.filter(c => c.job == "Director")
-    const directorNames = director.reduce((val, curr, currentIndex) => {
-        const separator = currentIndex > 0 && currentIndex != director.length - 1 ? " , " : " & "
-        return `${val}${currentIndex == 0 ? "" : separator}${curr.name}`
-    }, "")
-    return directorNames
+    if (director.length) {
+        const directorNames = director.reduce((val, curr, currentIndex) => {
+            const separator = currentIndex > 0 && currentIndex != director.length - 1 ? " , " : " & "
+            return `${val}${currentIndex == 0 ? "" : separator}${curr.name}`
+        }, "")
+        return directorNames
+    }
+    return ""
 }
 
 async function getMovieByName(name) {
@@ -43,25 +55,30 @@ async function getMovieByName(name) {
     const result = await axios.get(url.toString())
     const searchResult = result.data
 
-    if (searchResult) {
-        const currMovie = searchResult?.results?.[0] || {}
-        const movieData = await getMovieDataById(currMovie.id)
-        const cast = await getCrew(currMovie.id)
-        const directorName = getDirector(cast)
-        const movieResult = {
-            id: currMovie.id,
-            original_title: currMovie.original_title,
-            overview: movieData.overview,
-            tagline: movieData.tagline,
-            poster_path: currMovie.poster_path,
-            title: currMovie.title,
-            vote_average: currMovie.vote_average,
-            release: movieData.release_date,
-            directorName
+    console.log(JSON.stringify(searchResult))
+
+    try {
+        if (searchResult) {
+            const currMovie = searchResult?.results?.[0] || {}
+            const movieData = await getMovieDataById(currMovie.id)
+            const cast = await getCrew(currMovie.id)
+            const directorName = getDirector(cast)
+            const movieResult = {
+                id: currMovie.id,
+                original_title: currMovie.original_title,
+                overview: movieData.overview,
+                tagline: movieData.tagline,
+                poster_path: currMovie.poster_path,
+                title: currMovie.title,
+                vote_average: currMovie.vote_average,
+                release: movieData.release_date,
+                directorName
+            }
+            return movieResult
         }
-        return movieResult
+    } catch {
+        return {}
     }
-    return {}
 }
 
 module.exports = { getMovieByName };
