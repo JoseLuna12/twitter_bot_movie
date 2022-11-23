@@ -16,6 +16,10 @@ const tweet = async (content, mediaId) => {
     }
 }
 
+function generateContent({ titleHashtag, title, director, vote, release, resume }) {
+    return `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n${title} 🍿\nDir: ${director} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
+}
+
 const generateTweetContent = async (movie) => {
     if (movie) {
         const resume = movie?.overview?.length < 200 ? movie.overview : movie.tagline
@@ -33,13 +37,22 @@ const generateTweetContent = async (movie) => {
             resumeAi = resume
         }
 
-        const content = `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
+        let content = generateContent({ titleHashtag, director: movie.directorName, release, vote, title: movie.original_title, resume: resumeAi })
+
+        if (content.length > 280) {
+            content = generateContent({ titleHashtag, director: movie.directorName, release, vote, title: movie.original_title, resume: resume })
+        }
         if (content) {
             console.log(movie.poster_path)
             const res = await getImageFromURL(movie.poster_path)
             const mediaId = await updloadImage(res)
 
-            tweet(content, mediaId)
+            try {
+                tweet(content, mediaId)
+            } catch {
+
+            }
+
         }
     }
 }
