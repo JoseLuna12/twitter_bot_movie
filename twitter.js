@@ -12,4 +12,8 @@ const bearer = new TwitterApi(process.env.BEARER_TOKEN);
 const twitterClient = client.readWrite;
 const twitterBearer = bearer.readOnly;
 
-module.exports = { twitterClient, twitterBearer };
+function updloadImage(image) {
+    return twitterClient.v1.uploadMedia(image, { mimeType: "JPG" })
+}
+
+module.exports = { twitterClient, twitterBearer, updloadImage };
