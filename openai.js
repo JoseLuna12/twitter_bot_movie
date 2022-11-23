@@ -18,7 +18,7 @@ async function resumeMovie(movieName, text) {
         frequency_penalty: 0.5,
         presence_penalty: 0
     });
-    return completion.data.choices[0].text?.trim()
+    return completion.data.choices[0].text?.trim() || ""
 }
 
 module.exports = { resumeMovie };
