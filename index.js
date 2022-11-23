@@ -28,7 +28,7 @@ const generateTweetContent = async (movie) => {
         const titleHashtag = title.split(" ").join("")
         let resumeAi
         try {
-            resumeAi = resume ?? await resumeMovie(movie.original_title, movie.overview)
+            resumeAi = resume != "" ? await resumeMovie(movie.original_title, movie.overview) : resume
         } catch {
             resumeAi = resume
         }
