@@ -8,9 +8,10 @@ const openai = new OpenAIApi(configuration);
 
 
 async function resumeMovie(movieName, text) {
+    // console.log({ text })
     const completion = await openai.createCompletion({
         model: "text-davinci-002",
-        prompt: `Resume this paragraph: '${text}' with a maximun of 150 characters`,
+        prompt: `Sumarize this on one sentence:\n${text}`,
         temperature: 0,
         max_tokens: 60,
         top_p: 1,

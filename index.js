@@ -28,14 +28,14 @@ const generateTweetContent = async (movie) => {
         const titleHashtag = title.split(" ").join("")
         let resumeAi
         try {
-            resumeAi = await resumeMovie(movie.original_title, movie.overview)
+            resumeAi = resume ?? await resumeMovie(movie.original_title, movie.overview)
         } catch {
             resumeAi = resume
         }
 
-        const content = `#Movie #MovieList #${titleHashtag}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
+        const content = `#Movie #MovieList\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
         if (content) {
-            // console.log(content)
+            console.log(content)
             tweet(content)
         }
     }
