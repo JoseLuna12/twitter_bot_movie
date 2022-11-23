@@ -33,7 +33,7 @@ const generateTweetContent = async (movie) => {
             resumeAi = resume
         }
 
-        const content = `#Movie #MovieList\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
+        const content = `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
         if (content) {
             console.log(content)
             tweet(content)
