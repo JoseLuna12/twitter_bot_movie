@@ -26,7 +26,13 @@ const generateTweetContent = async (movie) => {
         const title = movie.original_title.replace(/^[a-zA-Z0-9_.-]*$/, "") || movie.original_title
         console.log(title)
         const titleHashtag = title.split(" ").join("")
-        const resumeAi = await resumeMovie(movie.original_title, movie.overview)
+        let resumeAi
+        try {
+            resumeAi = await resumeMovie(movie.original_title, movie.overview)
+        } catch {
+            resumeAi = resume
+        }
+
         const content = `#Movie #MovieList #${titleHashtag}\n${movie.original_title} 🍿\nDir: ${movie.directorName} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resumeAi}`
         if (content) {
             // console.log(content)
