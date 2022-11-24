@@ -11,7 +11,7 @@ async function resumeMovie(movieName, text) {
     // console.log({ text })
     if (text) {
         const completion = await openai.createCompletion({
-            model: "text-davinci-002",
+            model: "text-curie-001",
             prompt: `Sumarize this on one sentence:\n${text}`,
             temperature: 0,
             max_tokens: 60,

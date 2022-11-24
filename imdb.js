@@ -1,11 +1,10 @@
 const axios = require('axios');
 
-const API_KEY = "d9929a149452e7e3711bb1ace3e622d9"
+const API_KEY = process.env.MOVIE_API_KEY
 const BASE_URL = "https://api.themoviedb.org"
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 async function getMovieDataById(id) {
-    //https://api.themoviedb.org/3/movie/119104?api_key=d9929a149452e7e3711bb1ace3e622d9&language=en-US
     const url = new URL(`/3/movie/${id}`, BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
@@ -34,6 +33,37 @@ async function getImages(id) {
     }
 }
 
+function getTopFourImages(images) {
+    const topFour = []
+
+    const getLowestRatedImage = () => {
+        let index = 0
+        let lowest = topFour[0] || { vote_count: 0 }
+        topFour.forEach((tp, indexval) => {
+            if (lowest.vote_count > tp.vote_count) {
+                lowest = tp
+                index = indexval
+            }
+        })
+        return index
+    }
+
+    images?.forEach(im => {
+        if (topFour.length == 0) {
+            topFour.push(im)
+        } else if (topFour.length < 4) {
+            topFour.push(im)
+        } else {
+            const lowestIndex = getLowestRatedImage()
+            if (topFour?.[lowestIndex]?.vote_count > im.vote_count) {
+                topFour[lowestIndex] = im
+            }
+        }
+    })
+
+    return topFour
+}
+
 function getBestImage(images) {
     let image = { vote_count: 0 }
     images?.forEach(im => {
@@ -44,8 +74,11 @@ function getBestImage(images) {
     return image ?? ""
 }
 
-async function getTwitterImage(id) {
+async function getTwitterImage(id, getAllImages = false) {
     const { backdrops } = await getImages(id)
+    if (getAllImages) {
+        return backdrops
+    }
     if (backdrops) {
         const bestImage = getBestImage(backdrops)
         return bestImage?.file_path
@@ -73,16 +106,26 @@ async function getCrew(id) {
     }
 }
 
-function getDirector(cast) {
-    const director = cast.crew.filter(c => c.job == "Director")
-    if (director?.length) {
-        const directorNames = director.reduce((val, curr, currentIndex) => {
-            const separator = currentIndex > 0 && currentIndex != director.length - 1 ? ", " : " & "
+function mergeNames(names) {
+    if (names?.length) {
+        const resNames = names.reduce((val, curr, currentIndex) => {
+            const separator = currentIndex > 0 && currentIndex != names.length - 1 ? ", " : " & "
             return `${val}${currentIndex == 0 ? "" : separator}${curr.name}`
         }, "")
-        return directorNames
+        return resNames
+    } else {
+        return ""
     }
-    return ""
+}
+
+function getDirector(cast) {
+    const director = cast.crew.filter(c => c.job == "Director")
+    return mergeNames(director)
+}
+
+function getDirectorOfPhotography(cast) {
+    const directorPhotography = cast.crew.filter(c => c.job == "Director of Photography")
+    return mergeNames(directorPhotography)
 }
 
 async function queryMovieById(id) {
@@ -91,7 +134,7 @@ async function queryMovieById(id) {
     return retMovie
 }
 
-async function getMovieByName(name) {
+async function getMovieByName(name, twitterObject = true) {
     const url = new URL("/3/search/movie", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
@@ -104,13 +147,17 @@ async function getMovieByName(name) {
     const currMovie = searchResult?.results?.[0] || {}
     if (searchResult?.total_results != 0) {
 
-        return await generateTweetMovieObject(currMovie)
+        if (twitterObject) {
+            return await generateTweetMovieObject(currMovie)
+        }
+        else {
+            return currMovie
+        }
     } else {
         return {}
     }
-
-
 }
+
 
 async function generateTweetMovieObject(currMovie, isById = false) {
     try {
@@ -139,4 +186,21 @@ async function generateTweetMovieObject(currMovie, isById = false) {
     }
 }
 
-module.exports = { getMovieByName, getImageFromURL, queryMovieById };
+async function getCinematography(movieName = "", id = "") {
+    const movie = id ? await queryMovieById(id) : await getMovieByName(movieName)
+    // console.log({ movie })
+    const images = await getTwitterImage(movie.id, true)
+    const crew = await getCrew(movie.id)
+    const directorOfPhotography = getDirectorOfPhotography(crew)
+
+    let topFour = getTopFourImages(images)
+    topFour.sort((a, b) => a.vote_count - b.vote_count)
+
+    const topFourImages = topFour.map(tf => `${IMAGE_BASE_URL}${tf.file_path}`)
+
+    return {
+        topFourImages, directorOfPhotography, movie
+    }
+}
+
+module.exports = { getMovieByName, getImageFromURL, queryMovieById, getCinematography };
