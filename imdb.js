@@ -85,6 +85,12 @@ function getDirector(cast) {
     return ""
 }
 
+async function queryMovieById(id) {
+    const movie = await getMovieDataById(id)
+    const retMovie = await generateTweetMovieObject(movie)
+    return retMovie
+}
+
 async function getMovieByName(name) {
     const url = new URL("/3/search/movie", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
@@ -95,35 +101,42 @@ async function getMovieByName(name) {
 
     const result = await axios.get(url.toString())
     const searchResult = result.data
+    const currMovie = searchResult?.results?.[0] || {}
+    if (searchResult?.total_results != 0) {
 
+        return await generateTweetMovieObject(currMovie)
+    } else {
+        return {}
+    }
+
+
+}
+
+async function generateTweetMovieObject(currMovie, isById = false) {
     try {
-        if (searchResult?.total_results != 0) {
-            const currMovie = searchResult?.results?.[0] || {}
-            // console.log(JSON.stringify(currMovie))
-            const movieData = await getMovieDataById(currMovie.id)
-            const cast = await getCrew(currMovie.id)
-            const directorName = getDirector(cast)
-            const image = await getTwitterImage(currMovie.id)
+        const movieData = isById ? currMovie : await getMovieDataById(currMovie.id)
+        const cast = await getCrew(currMovie.id)
+        const directorName = getDirector(cast)
+        const image = await getTwitterImage(currMovie.id)
 
-            const poster_path = image ?? currMovie.poster_path
+        const poster_path = image ?? currMovie.poster_path
 
-
-            const movieResult = {
-                id: currMovie.id,
-                original_title: currMovie.original_title,
-                overview: movieData.overview,
-                tagline: movieData.tagline,
-                poster_path: `${IMAGE_BASE_URL}${poster_path}`,
-                title: currMovie.title,
-                vote_average: currMovie.vote_average,
-                release: movieData.release_date,
-                directorName
-            }
-            return movieResult
+        const movieResult = {
+            id: currMovie.id,
+            original_title: movieData.title,
+            overview: movieData.overview,
+            tagline: movieData.tagline,
+            poster_path: `${IMAGE_BASE_URL}${poster_path}`,
+            title: currMovie.title,
+            vote_average: currMovie.vote_average,
+            release: movieData.release_date,
+            directorName
         }
+        return movieResult
+
     } catch {
         return {}
     }
 }
 
-module.exports = { getMovieByName, getImageFromURL };
+module.exports = { getMovieByName, getImageFromURL, queryMovieById };

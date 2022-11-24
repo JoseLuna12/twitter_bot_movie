@@ -5,7 +5,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 4000;
 const { twitterClient, updloadImage } = require("./twitter")
-const { getMovieByName, getImageFromURL } = require("./imdb")
+const { getMovieByName, getImageFromURL, queryMovieById } = require("./imdb")
 const { resumeMovie } = require("./openai")
 
 const tweet = async (content, mediaId) => {
@@ -16,8 +16,10 @@ const tweet = async (content, mediaId) => {
     }
 }
 
-function generateContent({ titleHashtag, title, director, vote, release, resume }) {
-    return `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n${title} 🍿\nDir: ${director} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
+function generateContent({ titleHashtag, title, director, vote, release, resume, }, withHashtag = true) {
+    const hashTagLines = `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n`
+
+    return `${withHashtag ? hashTagLines : ""}${title} 🍿\nDir: ${director} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
 }
 
 const generateTweetContent = async (movie) => {
@@ -42,16 +44,20 @@ const generateTweetContent = async (movie) => {
         if (content.length > 280) {
             content = generateContent({ titleHashtag, director: movie.directorName, release, vote, title: movie.original_title, resume: resume })
         }
+
+        if (content.length > 280) {
+            content = generateContent({ titleHashtag, director: movie.directorName, release, vote, title: movie.original_title, resume: resume }, false)
+        }
+
+        if (content.length > 280) {
+            content = generateContent({ titleHashtag, director: movie.directorName, release, vote, title: movie.original_title, resume: "" })
+        }
+
         if (content) {
-            console.log(movie.poster_path)
             const res = await getImageFromURL(movie.poster_path)
             const mediaId = await updloadImage(res)
 
-            try {
-                tweet(content, mediaId)
-            } catch {
-
-            }
+            tweet(content, mediaId)
 
         }
     }
@@ -64,12 +70,29 @@ const tweetMovie = async (movieName) => {
     } catch (err) {
         console.error("There was an error", err)
     }
+}
 
+const tweetMovieById = async (movieName) => {
+    try {
+        const movie = await queryMovieById(movieName)
+        await generateTweetContent(movie)
+    } catch (err) {
+        console.error("There was an error", err)
+    }
 }
 
 app.get('/:movie', (req, res) => {
     if (req.headers.auth === process.env.PASS) {
         tweetMovie(req.params.movie)
+        return res.send('ok');
+    } else {
+        return res.send("no auth")
+    }
+});
+
+app.get('/movie/:id', (req, res) => {
+    if (req.headers.auth === process.env.PASS) {
+        tweetMovieById(req.params.id)
         return res.send('ok');
     } else {
         return res.send("no auth")
