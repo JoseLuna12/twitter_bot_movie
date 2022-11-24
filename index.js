@@ -136,9 +136,13 @@ app.post('/photography/:movie', jsonParser, async (req, res) => {
     if (value?.movie) {
         const movieName = value?.movie.original_title
         const directorOfPhotography = value?.directorOfPhotography
+        const director = value?.movie.directorName
         const year = value?.movie?.release?.split("-")?.[0]
 
-        const tweetContent = `#Cinematography #movie #filmmakers #videography\n${movieName}, ${year}\nCinematography by ${directorOfPhotography}`
+        const directedBy = `\nDirected by ${director}`
+        const cinematographyBy = `\nCinematography by ${directorOfPhotography} 📷`
+
+        const tweetContent = `#Cinematography #Movie\n${movieName} (${year})${director ? directedBy : ""}${directorOfPhotography ? cinematographyBy : ""}`
 
         console.log(tweetContent)
         tweet(tweetContent, value?.twitterMediaIds)
