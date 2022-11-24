@@ -138,7 +138,7 @@ app.post('/photography/:movie', jsonParser, async (req, res) => {
         const directorOfPhotography = value?.directorOfPhotography
         const year = value?.movie?.release?.split("-")?.[0]
 
-        const tweetContent = `#Cinematography #movie #filmmakers #videography\n${movieName}, ${year}\nDir. of photography: ${directorOfPhotography}`
+        const tweetContent = `#Cinematography #movie #filmmakers #videography\n${movieName}, ${year}\nCinematography by ${directorOfPhotography}`
 
         console.log(tweetContent)
         tweet(tweetContent, value?.twitterMediaIds)
