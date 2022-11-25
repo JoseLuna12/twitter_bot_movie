@@ -21,9 +21,9 @@ const tweet = async (content, mediaId) => {
 }
 
 function generateContent({ titleHashtag, title, director, vote, release, resume, }, withHashtag = true) {
-    const hashTagLines = `#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}\n`
+    const hashTagLines = `\n\n#Movie #MovieList${titleHashtag.length <= 10 ? ` #${titleHashtag}` : ""}`
 
-    return `${withHashtag ? hashTagLines : ""}${title} 🍿\nDir: ${director} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}`
+    return `${title} 🍿\nDir: ${director} 🎬\n${vote}/10 ⭐️\nyear: ${release}\n${resume}${withHashtag ? hashTagLines : ""}`
 }
 
 const generateTweetContent = async (movie) => {
@@ -84,8 +84,7 @@ const tweetCinematographByName = async (movieName, id = "", customPhotos = []) =
             directorOfPhotography: cinematography.directorOfPhotography,
             movie: cinematography.movie
         }
-        // const images = await Promise.all([)
-        // await generateTweetContent(movie)
+
     } catch (err) {
         console.error("There was an error", err)
     }
@@ -141,10 +140,10 @@ app.post('/photography/:movie', jsonParser, async (req, res) => {
 
         const directedBy = `\nDirected by ${director}`
         const cinematographyBy = `\nCinematography by ${directorOfPhotography} 📷`
+        const hashtags = `\n\n#Cinematography #Movie`
 
-        const tweetContent = `#Cinematography #Movie\n${movieName} (${year})${director ? directedBy : ""}${directorOfPhotography ? cinematographyBy : ""}`
+        const tweetContent = `${movieName} (${year})${director ? directedBy : ""}${directorOfPhotography ? cinematographyBy : ""}${hashtags}`
 
-        console.log(tweetContent)
         tweet(tweetContent, value?.twitterMediaIds)
     }
     return res.send("ok")
