@@ -174,7 +174,7 @@ app.post('/music/:movie', jsonParser, async (req, res) => {
     const movie = req.params.movie
     const spotifySoundtrack = req.body.spotify
     const id = req.body?.id || ""
-    tweetOriginalSoundtrack(movie, spotifySoundtrack, id)
+    tweetOriginalSoundtrack(movie, spotifySoundtrack, { id })
     return res.send("ok")
 })
 
