@@ -187,8 +187,9 @@ app.get('/photography/:movie', async (req, res) => {
         const movieName = value?.movie.original_title
         const directorOfPhotography = value?.directorOfPhotography
         const year = value?.movie?.release?.split("-")?.[0]
+        const hashtags = `\n\n#Cinematography #Movie`
 
-        const tweetContent = `#Cinematography #movie #filmmakers #videography\n${movieName}, ${year}\nDir. of photography: ${directorOfPhotography}`
+        const tweetContent = `${movieName}, ${year}\nDir. of photography: ${directorOfPhotography}${hashtags}`
 
         console.log(tweetContent)
         if (value && value.directorOfPhotography && value.movie && value.twitterMediaIds) {
