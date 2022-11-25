@@ -9,7 +9,7 @@ var jsonParser = bodyParser.json()
 
 const port = process.env.PORT || 4000;
 const { twitterClient, updloadImage } = require("./twitter")
-const { getMovieByName, getImageFromURL, queryMovieById, getCinematography } = require("./imdb")
+const { getMovieByName, getImageFromURL, queryMovieById, getCinematography, getOriginalSoundtrackDb } = require("./imdb")
 const { resumeMovie } = require("./openai")
 
 const tweet = async (content, mediaId) => {
@@ -146,6 +146,35 @@ app.post('/photography/:movie', jsonParser, async (req, res) => {
 
         tweet(tweetContent, value?.twitterMediaIds)
     }
+    return res.send("ok")
+})
+
+function generateMusicTweetContent({ movie, composers }, soundtrackLink) {
+    const year = movie.release?.split("-")?.[0]
+    const originalSountrackBy = `\nOriginal soundtrack by ${composers} 🎹`
+    const hashtags = `\n\n#OrignalMusic #MovieScore #OST`
+    const tweetContent = `${movie.original_title} (${year})${originalSountrackBy}\n🔗${soundtrackLink}${hashtags}`
+    return tweetContent
+}
+
+async function tweetOriginalSoundtrack(movie = "", soundtrack, { id = "" }) {
+    const movieData = await getOriginalSoundtrackDb(movie, id)
+    const content = generateMusicTweetContent(movieData, soundtrack)
+    // const imageBlobPromises = await Promise.all(movieData?.images.map(getImageFromURL))
+    // const uploadTwitterMediaIdsPromises = imageBlobPromises.map(updloadImage)
+    // const imagesId = await Promise.all(uploadTwitterMediaIdsPromises)
+    // console.log({ imagesId })
+    const imageBlob = await getImageFromURL(movieData.poster_path)
+    const image = await updloadImage(imageBlob)
+    console.log(content)
+    await tweet(content, [image])
+}
+
+app.post('/music/:movie', jsonParser, async (req, res) => {
+    const movie = req.params.movie
+    const spotifySoundtrack = req.body.spotify
+    const id = req.body?.id || ""
+    tweetOriginalSoundtrack(movie, spotifySoundtrack, id)
     return res.send("ok")
 })
 

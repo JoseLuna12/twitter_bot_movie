@@ -118,6 +118,11 @@ function mergeNames(names) {
     }
 }
 
+function getMusicComposer(cast) {
+    const director = cast.crew.filter(c => c.job == "Original Music Composer")
+    return mergeNames(director)
+}
+
 function getDirector(cast) {
     const director = cast.crew.filter(c => c.job == "Director")
     return mergeNames(director)
@@ -173,6 +178,7 @@ async function generateTweetMovieObject(currMovie, isById = false) {
             original_title: movieData.title,
             overview: movieData.overview,
             tagline: movieData.tagline,
+            original_poster: currMovie.poster_path,
             poster_path: `${IMAGE_BASE_URL}${poster_path}`,
             title: currMovie.title,
             vote_average: currMovie.vote_average,
@@ -188,7 +194,6 @@ async function generateTweetMovieObject(currMovie, isById = false) {
 
 async function getCinematography(movieName = "", id = "") {
     const movie = id ? await queryMovieById(id) : await getMovieByName(movieName)
-    // console.log({ movie })
     const images = await getTwitterImage(movie.id, true)
     const crew = await getCrew(movie.id)
     const directorOfPhotography = getDirectorOfPhotography(crew)
@@ -203,4 +208,21 @@ async function getCinematography(movieName = "", id = "") {
     }
 }
 
-module.exports = { getMovieByName, getImageFromURL, queryMovieById, getCinematography };
+async function getOriginalSoundtrackDb(movieName = "", id = "") {
+    const movie = id ? await queryMovieById(id) : await getMovieByName(movieName)
+    const cast = await getCrew(movie.id)
+    const composers = getMusicComposer(cast)
+    // const image = await getTwitterImage(movie.id, true)
+    // const topFour = getTopFourImages(image)
+    // const topThree = topFour.map(tf => `${IMAGE_BASE_URL}${tf.file_path}`).slice(0, 2)
+    const poster_path = movie.original_poster
+
+    return {
+        movie,
+        composers,
+        poster_path: `${IMAGE_BASE_URL}${poster_path}`,
+        // images: [image]
+    }
+}
+
+module.exports = { getMovieByName, getImageFromURL, queryMovieById, getCinematography, getOriginalSoundtrackDb };
