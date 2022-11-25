@@ -13,7 +13,7 @@ const twitterClient = client.readWrite;
 const twitterBearer = bearer.readOnly;
 
 function updloadImage(image) {
-    return twitterClient.v1.uploadMedia(image, { mimeType: "JPG" })
+    return twitterClient.v1.uploadMedia(image, { mimeType: "JPG", target: "tweet" })
 }
 
 module.exports = { twitterClient, twitterBearer, updloadImage };
