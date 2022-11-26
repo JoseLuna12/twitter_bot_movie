@@ -41,34 +41,28 @@ function generateMovieObject(content, movie, key) {
     }
 }
 
-function getReleaseYear(release) {
-    return parseFloat(release) != 0.0 ? "" : `(${release})`
-}
-
 async function generateMovieListContent(movie, hashtagskey) {
     const { original_title, directorName, vote_average, release, overview } = movie
 
-    const releaseYear = getReleaseYear(release)
+    const vote = parseFloat(vote_average) == 0.0 ? "" : `\n{vote_average}/10 ⭐️`
 
     const aiSummary = await resumeMovie(overview)
-    const content = `${original_title} ${releaseYear} 🍿\nDir: ${directorName} 🎬\n${vote_average}/10 ⭐️\n${aiSummary}`
+    const content = `${original_title} (${release}) 🍿\nDir: ${directorName} 🎬${vote}\n${aiSummary}`
 
     return generateMovieObject(content, movie, hashtagskey)
 }
 
 function generateCinematographyContent(movie, hashtagskey) {
     const { original_title, directorOfPhotography, release, directorName } = movie
-    const releaseYear = getReleaseYear(release)
-    const content = `${original_title} ${releaseYear}\nDirected by ${directorName}\nCinematography by ${directorOfPhotography} 📷`
+    const content = `${original_title} (${release})\nDirected by ${directorName}\nCinematography by ${directorOfPhotography} 📷`
 
     return generateMovieObject(content, movie, hashtagskey)
 }
 
 function generateSoundtrackContent(movie, hashtagskey) {
     const { original_title, release, composers, spotify } = movie
-    const releaseYear = getReleaseYear(release)
 
-    const content = `${original_title} ${releaseYear}\nOriginal soundtrack by ${composers} 🎹\n🔗 ${spotify}`
+    const content = `${original_title} (${release})\nOriginal soundtrack by ${composers} 🎹\n🔗 ${spotify}`
     return generateMovieObject(content, movie, hashtagskey)
 }
 
