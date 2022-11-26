@@ -7,12 +7,13 @@ const openai = new OpenAIApi(configuration);
 
 
 
-async function resumeMovie(movieName, text) {
-    // console.log({ text })
+async function resumeMovie(text) {
     if (text) {
         const completion = await openai.createCompletion({
-            model: "text-curie-001",
-            prompt: `Sumarize this story on one sentence:\n${text}`,
+            model: "text-davinci-002",
+            prompt: `Sumarize this Parragraph in third person on one sentence.
+            Parragraph: ${text}
+            sentence:`,
             temperature: 0,
             max_tokens: 60,
             top_p: 1,
