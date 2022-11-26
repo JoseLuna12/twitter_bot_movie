@@ -30,7 +30,7 @@ const movieHashtags = {
     titleHashtag: (movie) => {
         if (movie) {
             const { original_title } = movie
-            const title = original_title?.replace(/[^a-z0-9]/gi, '') || original_title
+            const title = original_title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, '') || original_title
             const titleHashtag = title.split(" ").join("")
             return ` #${titleHashtag}`
         }

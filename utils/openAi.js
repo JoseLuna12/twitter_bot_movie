@@ -8,7 +8,7 @@ const openai = new OpenAIApi(configuration);
 
 async function getEmojisForMovie(movie) {
     const completion = await openai.createCompletion({
-        model: "text-curie-001",
+        model: "text-davinci-002",
         prompt: `Transform this movie into two emojis.
         Movie title: ${movie}
         emojis:`,
