@@ -3,7 +3,7 @@ if (!process.env.PORT) {
 }
 
 const { tweetMovie } = require("./utils/twitter")
-const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest } = require("./utils/movieDatabase")
+const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest } = require("./utils/movieDatabase")
 
 const express = require('express')
 var bodyParser = require('body-parser')
@@ -15,21 +15,29 @@ const port = process.env.PORT || 4000;
 
 
 app.get('/:movie', async (req, res) => {
-    if (!(req.headers.auth === process.env.PASS)) { res.send("no auth") }
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const movie = await makeMovieRequest({ name: req.params.movie })
     tweetMovie(movie, "list")
     return res.send("ok")
 });
 
 app.get('/movie/:id', async (req, res) => {
-    if (!(req.headers.auth === process.env.PASS)) { res.send("no auth") }
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const movie = await makeMovieRequest({ id: req.params.id })
     tweetMovie(movie, "list")
     return res.send("ok")
 });
 
+app.get('/director/:name', async (req, res) => {
+    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const name = req.params.name
+    const directorData = await makeDirectorRequest({ name })
+    tweetMovie(directorData, "director")
+    return res.send("ok")
+})
+
 app.post('/photography/:movie', jsonParser, async (req, res) => {
-    if (!(req.headers.auth === process.env.PASS)) { res.send("no auth") }
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const customImages = req.body?.images || []
     const id = req.body?.id || ""
 

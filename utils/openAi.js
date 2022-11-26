@@ -6,6 +6,20 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 
+async function getEmojisForMovie(movie) {
+    const completion = await openai.createCompletion({
+        model: "text-curie-001",
+        prompt: `Transform this movie into two emojis.
+        Movie title: ${movie}
+        emojis:`,
+        temperature: 0,
+        max_tokens: 60,
+        top_p: 1,
+        frequency_penalty: 0.5,
+        presence_penalty: 0
+    });
+    return completion.data.choices[0].text?.trim() || ""
+}
 
 async function resumeMovie(text) {
     if (text) {
@@ -25,4 +39,4 @@ async function resumeMovie(text) {
     return ""
 }
 
-module.exports = { resumeMovie };
+module.exports = { resumeMovie, getEmojisForMovie };

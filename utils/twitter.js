@@ -1,5 +1,5 @@
 const { TwitterApi } = require("twitter-api-v2");
-const { resumeMovie } = require("./openAi")
+const { resumeMovie, getEmojisForMovie } = require("./openAi")
 
 const client = new TwitterApi({
     appKey: process.env.API_KEY,
@@ -26,10 +26,14 @@ const movieHashtags = {
     listHashtags: `\n\n#Movie #MovieList`,
     cinematographyHashtags: `\n\n#Cinematography #Movie #AppreciationPost`,
     soundtrackHashtags: `\n\n#OrignalMusic #MovieScore #OST`,
-    titleHashtag: ({ original_title }) => {
-        const title = original_title?.replace(/[^a-z0-9]/gi, '') || original_title
-        const titleHashtag = title.split(" ").join("")
-        return ` #${titleHashtag}`
+    director: `\n\n#Director #Movie`,
+    titleHashtag: (movie) => {
+        if (movie) {
+            const { original_title } = movie
+            const title = original_title?.replace(/[^a-z0-9]/gi, '') || original_title
+            const titleHashtag = title.split(" ").join("")
+            return ` #${titleHashtag}`
+        }
     }
 }
 
@@ -66,6 +70,19 @@ function generateSoundtrackContent(movie, hashtagskey) {
     return generateMovieObject(content, movie, hashtagskey)
 }
 
+async function generateDirectorContent(director, hashtagskey) {
+    const { name, movies } = director
+    const emojisPromise = movies.map(m => {
+        return getEmojisForMovie(m.title)
+    })
+    const emojis = await Promise.all(emojisPromise)
+    const moviesText = movies?.map((m, i) => {
+        return `\n• ${m.title} (${m.release}) ${emojis[i]}`
+    }).join("")
+    const content = `Cinema by ${name} 🎞️\n${moviesText}`
+    return generateMovieObject(content, director, hashtagskey)
+}
+
 function generateTweetContent(tweetContentObject, withHashtag = true, withTitleHashtag = true, times = 0) {
     const titleHashtag = withTitleHashtag ? `${tweetContentObject.titleHashtag}` : ""
     const hashtags = withHashtag ? `${tweetContentObject.hashtags}${titleHashtag}` : ""
@@ -93,9 +110,16 @@ async function getTweetValuesForCinematography(movie) {
 }
 
 async function getTweetValuesForSoundtrack(movie) {
-    const soundtrack = generateSoundtrackContent(movie, "soundtrackHashtags")
+    const soundtrack = awgenerateSoundtrackContent(movie, "soundtrackHashtags")
     const content = generateTweetContent(soundtrack)
     const mediaIds = [await updloadImage(movie.original_poster)]
+    return { content, mediaIds }
+}
+
+async function getTweetValuesForDirector(director) {
+    const directorData = await generateDirectorContent(director, "director")
+    const content = generateTweetContent(directorData)
+    const mediaIds = await uploadMultipleImages(director.movie_images)
     return { content, mediaIds }
 }
 
@@ -117,6 +141,11 @@ async function tweetMovie(movie, type) {
             const { content: soundtrackContent, mediaIds: soundtrackMediaIds } = await getTweetValuesForSoundtrack(movie)
             content = soundtrackContent
             media_ids = soundtrackMediaIds
+            break;
+        case "director":
+            const { content: directorContent, mediaIds: directorMediaIds } = await getTweetValuesForDirector(movie)
+            content = directorContent
+            media_ids = directorMediaIds
             break;
         default:
             break;

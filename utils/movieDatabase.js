@@ -4,6 +4,25 @@ const API_KEY = process.env.MOVIE_API_KEY
 const BASE_URL = "https://api.themoviedb.org"
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
+async function queryDirectorByName(name) {
+    //https://api.themoviedb.org/3/search/person?api_key=<<api_key>>&language=en-US&query=test&page=1&include_adult=false
+    const url = new URL("/3/search/person", BASE_URL)
+    url.searchParams.append("api_key", API_KEY)
+    url.searchParams.append("language", "en-US")
+    url.searchParams.append("query", name)
+    url.searchParams.append("page", "1")
+    url.searchParams.append("include_adult", "false")
+
+    const result = await axios.get(url.toString())
+    const searchResult = result.data
+    const director = searchResult?.results?.[0] || {}
+    if (searchResult?.total_results != 0) {
+        return director
+    } else {
+        return {}
+    }
+}
+
 async function queryMovieByName(name) {
     const url = new URL("/3/search/movie", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
@@ -143,6 +162,37 @@ function getBestImage(images) {
     return image
 }
 
+async function getKnownForMoviesByDirector(director) {
+    const { known_for } = director
+    const backdrops = []
+    const movies = known_for.map(kf => {
+        if (backdrops.length < 3) {
+            backdrops.push(`${IMAGE_BASE_URL}${kf.backdrop_path}`)
+        }
+        const releaseDate = kf?.release_date?.split("-")?.[0]
+        return {
+            id: kf.id,
+            title: kf.title,
+            release: releaseDate
+        }
+    })
+
+    const backdropsBuffer = await Promise.all(backdrops.map(getUrlImageToBuffer))
+
+    return { backdropsBuffer, movies }
+}
+
+async function getDirectorObject(director) {
+    const { movies, backdropsBuffer } = await getKnownForMoviesByDirector(director)
+    return {
+        id: director.id,
+        name: director.name,
+        original_title: director.name,
+        movies,
+        movie_images: backdropsBuffer
+    }
+}
+
 async function getMoviePostObject(movie) {
     const crew = await queryMovieCrewById(movie.id)
     const directorName = getDirector(crew)
@@ -188,6 +238,12 @@ async function getMovieById(id) {
     return movieObject
 }
 
+async function getDirectorByName(name) {
+    const director = await queryDirectorByName(name)
+    const directorObject = await getDirectorObject(director)
+    return directorObject
+}
+
 async function makeMovieRequest({ name = "", id = "" }) {
     console.log(name)
     const movie = id ? await getMovieById(id) : await getMovieByName(name)
@@ -219,7 +275,13 @@ async function makeOriginalSoundtrackRequest({ name = "", id = "", spotify }) {
     return value
 }
 
-module.exports = { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest }
+async function makeDirectorRequest({ name = "", id = "" }) {
+    console.log({ name, id })
+    const data = await getDirectorByName(name)
+    return data
+}
+
+module.exports = { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest }
 
 //tagline missing
 
