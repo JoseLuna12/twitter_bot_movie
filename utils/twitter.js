@@ -24,7 +24,7 @@ function updloadImage(image) {
 
 const movieHashtags = {
     listHashtags: `\n\n#Movie #MovieList`,
-    cinematographyHashtags: `\n\n#Cinematography #Movie`,
+    cinematographyHashtags: `\n\n#Cinematography #Movie #AppreciationPost`,
     soundtrackHashtags: `\n\n#OrignalMusic #MovieScore #OST`,
     titleHashtag: ({ original_title }) => {
         const title = original_title?.replace(/[^a-z0-9]/gi, '') || original_title
