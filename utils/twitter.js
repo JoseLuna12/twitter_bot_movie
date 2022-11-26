@@ -51,7 +51,7 @@ async function generateMovieListContent(movie, hashtagskey) {
     const releaseYear = getReleaseYear(release)
 
     const aiSummary = await resumeMovie(overview)
-    const content = `${original_title} releaseYear 🍿\nDir: ${directorName} 🎬\n${vote_average}/10 ⭐️\n${aiSummary}`
+    const content = `${original_title} ${releaseYear} 🍿\nDir: ${directorName} 🎬\n${vote_average}/10 ⭐️\n${aiSummary}`
 
     return generateMovieObject(content, movie, hashtagskey)
 }
