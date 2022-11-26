@@ -29,7 +29,7 @@ app.get('/movie/:id', async (req, res) => {
 });
 
 app.get('/director/:name', async (req, res) => {
-    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const name = req.params.name
     const directorData = await makeDirectorRequest({ name })
     tweetMovie(directorData, "director")
