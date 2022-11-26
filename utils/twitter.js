@@ -44,7 +44,7 @@ function generateMovieObject(content, movie, key) {
 async function generateMovieListContent(movie, hashtagskey) {
     const { original_title, directorName, vote_average, release, overview } = movie
 
-    const vote = parseFloat(vote_average) == 0.0 ? "" : `\n{vote_average}/10 ⭐️`
+    const vote = parseFloat(vote_average) == 0.0 ? "" : `\n${vote_average}/10 ⭐️`
 
     const aiSummary = await resumeMovie(overview)
     const content = `${original_title} (${release}) 🍿\nDir: ${directorName} 🎬${vote}\n${aiSummary}`
