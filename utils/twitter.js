@@ -110,7 +110,7 @@ async function getTweetValuesForCinematography(movie) {
 }
 
 async function getTweetValuesForSoundtrack(movie) {
-    const soundtrack = awgenerateSoundtrackContent(movie, "soundtrackHashtags")
+    const soundtrack = generateSoundtrackContent(movie, "soundtrackHashtags")
     const content = generateTweetContent(soundtrack)
     const mediaIds = [await updloadImage(movie.original_poster)]
     return { content, mediaIds }
