@@ -5,7 +5,6 @@ const BASE_URL = "https://api.themoviedb.org"
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 async function queryDirectorByName(name) {
-    //https://api.themoviedb.org/3/search/person?api_key=<<api_key>>&language=en-US&query=test&page=1&include_adult=false
     const url = new URL("/3/search/person", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
@@ -68,14 +67,14 @@ async function queryMovieCrewById(id) {
     }
 }
 
-async function queryMovieImagesById(id) {
+async function queryMovieImagesById(id, includePoster = false) {
     const url = new URL(`/3/movie/${id}/images`, BASE_URL)
     url.searchParams.append("api_key", API_KEY)
 
     try {
         const result = await axios.get(url.toString())
-        const { backdrops } = result.data
-        return backdrops
+        const { backdrops, posters } = result.data
+        return includePoster ? { posters, backdrops } : backdrops
     }
     catch (e) {
         return {}
@@ -118,6 +117,13 @@ function getDirectorOfPhotography(cast) {
 
 //
 
+function compareTwoImages(imageA, imageB) {
+    const isOverAllABetterImage = imageA.vote_count < imageB.vote_count && imageA.vote_average < imageB.vote_average
+    const isMoreVoted = imageA.vote_average < imageB.vote_average
+    const isLowestRated = imageA.vote_average > imageB.vote_average
+    return { isOverAllABetterImage, isMoreVoted, isLowestRated }
+}
+
 function getTopImages(images, top = 3) {
     const topImages = []
 
@@ -125,7 +131,8 @@ function getTopImages(images, top = 3) {
         let index = 0
         let lowest = topImages[0] || { vote_count: 0 }
         topImages.forEach((tp, indexval) => {
-            if (lowest.vote_count > tp.vote_count) {
+            const { isLowestRated } = compareTwoImages(lowest, tp)
+            if (isLowestRated) {
                 lowest = tp
                 index = indexval
             }
@@ -134,13 +141,12 @@ function getTopImages(images, top = 3) {
     }
 
     images?.forEach(im => {
-        if (topImages.length == 0) {
-            topImages.push(im)
-        } else if (topImages.length < top) {
+        if (topImages.length < top) {
             topImages.push(im)
         } else {
             const lowestIndex = getLowestRatedTopImage()
-            if (topImages?.[lowestIndex]?.vote_count > im.vote_count) {
+            const { isOverAllABetterImage } = compareTwoImages(topImages?.[lowestIndex], im)
+            if (isOverAllABetterImage) {
                 topImages[lowestIndex] = im
             }
         }
@@ -153,9 +159,10 @@ function getTopImages(images, top = 3) {
 }
 
 function getBestImage(images) {
-    let image = { vote_count: 0 }
+    let image = { vote_count: 0, vote_average: 0 }
     images?.forEach(im => {
-        if (image.vote_count < im.vote_count) {
+        const { isOverAllABetterImage } = compareTwoImages(image, im)
+        if (isOverAllABetterImage) {
             image = im
         }
     })
@@ -182,8 +189,8 @@ async function getKnownForMoviesByDirector(director) {
     return { backdropsBuffer, movies }
 }
 
-async function getDirectorObject(director) {
-    const { movies, backdropsBuffer } = await getKnownForMoviesByDirector(director)
+async function getDirectorObject(director, movies = []) {
+    const backdropsBuffer = await getKnownForMoviesByDirector(director)
     return {
         id: director.id,
         name: director.name,
@@ -199,7 +206,8 @@ async function getMoviePostObject(movie) {
     const directorOfPhotography = getDirectorOfPhotography(crew)
     const composers = getMusicComposer(crew)
 
-    const images = await queryMovieImagesById(movie.id)
+    const { backdrops: images, posters } = await queryMovieImagesById(movie.id, true)
+
     const bestImage = getBestImage(images)
     const poster_path = bestImage?.file_path ?? movie.poster_path
 
@@ -208,7 +216,8 @@ async function getMoviePostObject(movie) {
     }
 
     const posterBuffer = await getUrlImageToBuffer(`${IMAGE_BASE_URL}${poster_path}`)
-    const original_poster = await getUrlImageToBuffer(`${IMAGE_BASE_URL}${movie.poster_path}`)
+    const bestPoster = getBestImage(posters)
+    const original_poster = await getUrlImageToBuffer(`${IMAGE_BASE_URL}${bestPoster.file_path}`)
     const vote_average = parseFloat(movie.vote_average).toFixed(1)
     return {
         id: movie.id,
@@ -238,7 +247,7 @@ async function getMovieById(id) {
     return movieObject
 }
 
-async function getDirectorByName(name) {
+async function getDirectorByName(name, movies = []) {
     const director = await queryDirectorByName(name)
     const directorObject = await getDirectorObject(director)
     return directorObject
@@ -275,8 +284,7 @@ async function makeOriginalSoundtrackRequest({ name = "", id = "", spotify }) {
     return value
 }
 
-async function makeDirectorRequest({ name = "", id = "" }) {
-    console.log({ name, id })
+async function makeDirectorRequest({ name = "", id = "", movies = [] }) {
     const data = await getDirectorByName(name)
     return data
 }

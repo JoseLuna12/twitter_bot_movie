@@ -27,7 +27,7 @@ const movieHashtags = {
     popular: ["#Movie", "#FilmTwitter"],
     listHashtags: `\n\n#MustWatch`,
     cinematographyHashtags: `\n\n#Cinematography #AppreciationPost`,
-    soundtrackHashtags: `\n\n#OrignalMusic #MovieScore`,
+    soundtrackHashtags: `\n\n#MovieScore #Spotify`,
     director: `\n\n#Director`,
     titleHashtag: (movie) => {
         if (movie) {
@@ -62,7 +62,7 @@ async function generateMovieListContent(movie, hashtagskey) {
 
     const vote = parseFloat(vote_average) == 0.0 ? "" : `\n${vote_average}/10 ⭐️`
 
-    const aiSummary = overview//await resumeMovie(overview)
+    const aiSummary = await resumeMovie(overview)
     const content = `${original_title} (${release}) 🍿\nDir: ${directorName} 🎬${vote}\n${aiSummary}`
 
     addHashtagOnCommand({ add: !vote, hashtag: "#ComingSoon" })
