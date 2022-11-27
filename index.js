@@ -3,7 +3,7 @@ if (!process.env.PORT) {
 }
 
 const { tweetMovie } = require("./utils/twitter")
-const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest } = require("./utils/movieDatabase")
+const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest } = require("./utils/movieDatabase")
 
 const express = require('express')
 var bodyParser = require('body-parser')
@@ -64,6 +64,16 @@ app.post('/music/:movie', jsonParser, async (req, res) => {
     tweetMovie(movie, "soundtrack")
 
     return res.send("ok")
+})
+
+app.post('/featuring/:person', jsonParser, async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const person = req.params.person
+    const id = req.body.id || ""
+    const movieFeatures = req.body.features || []
+    const inThread = req.body.thread || false
+
+    const test = makeFeaturedPersonRequest({ name: person, id, featured: movieFeatures, thread: inThread })
 })
 
 

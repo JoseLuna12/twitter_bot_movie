@@ -1,6 +1,6 @@
-const e = require("express");
 const { TwitterApi } = require("twitter-api-v2");
 const { resumeMovie, getEmojisForMovie } = require("./openAi")
+const { add, addTweetId } = require("../database/index")
 
 const client = new TwitterApi({
     appKey: process.env.API_KEY,
@@ -15,6 +15,11 @@ const bearer = new TwitterApi(process.env.BEARER_TOKEN);
 
 const twitterClient = client.readWrite;
 const twitterBearer = bearer.readOnly;
+
+let tweetType = "list"
+let lastDbTweet = 0
+
+// twitterClient.v2.tweetThread
 
 function uploadMultipleImages(images) {
     return Promise.all(images.map(updloadImage))
@@ -97,6 +102,14 @@ async function generateDirectorContent(director, hashtagskey) {
     return generateMovieObject(content, director, hashtagskey)
 }
 
+async function saveTweet(tweet) {
+    const { error, data } = await add({ ...tweet, type: tweetType })
+    if (!error) {
+        lastDbTweet = data?.[0].id
+        console.log("Saving to db Success!", data?.[0].id)
+    }
+}
+
 function generateTweetContent(tweetContentObject, hashtags = []) {
     const popularHashtags = hashtags.join(" ")
     const titleHashtag = tweetContentObject.titleHashtag
@@ -105,6 +118,11 @@ function generateTweetContent(tweetContentObject, hashtags = []) {
     const finalHashtags = `${postHashtags}${titleHashtag} ${popularHashtags}`
 
     const tweetContent = `${tweetContentObject.content}${finalHashtags}`
+
+    const finalTweet = {
+        content: tweetContentObject.content,
+        hashtags: finalHashtags
+    }
 
     if (tweetContent.length > MAX_CHARACTERS) {
         const tweetContentObjectCopy = { ...tweetContentObject }
@@ -118,8 +136,8 @@ function generateTweetContent(tweetContentObject, hashtags = []) {
             tweetContentObjectCopy.hashtags = ""
             return generateTweetContent(tweetContentObjectCopy, [])
         }
-        return tweetContentObject.content
     } else {
+        saveTweet(finalTweet)
         return tweetContent
     }
 }
@@ -161,6 +179,7 @@ async function getTweetValuesForDirector(director) {
 async function tweetMovie(movie, type) {
     let content = ""
     let media_ids = []
+    tweetType = type
     switch (type) {
         case "list":
             const { content: listContent, mediaIds: listMediaIds } = await getTweetValuesForList(movie)
@@ -194,7 +213,8 @@ async function tweetMovie(movie, type) {
         console.log(content)
         console.log(content.length)
         if (content) {
-            await twitterClient.v2.tweet(content, { media: { media_ids } });
+            const { data: { id } } = await twitterClient.v2.tweet(content, { media: { media_ids } });
+            await addTweetId({ tweet_id: id, id: lastDbTweet })
         }
     } catch (e) {
         console.log(e)

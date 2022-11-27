@@ -22,6 +22,39 @@ async function queryDirectorByName(name) {
     }
 }
 
+async function queryPersonById(id) {
+    const url = new URL(`/3/person/${id}`, BASE_URL)
+    url.searchParams.append("api_key", API_KEY)
+    url.searchParams.append("language", "en-US")
+
+    try {
+        const result = await axios.get(url.toString())
+        const searchResult = result.data
+        return searchResult
+    }
+    catch (e) {
+        return {}
+    }
+}
+
+async function queryPersonByName(name) {
+    const url = new URL("/3/search/person", BASE_URL)
+    url.searchParams.append("api_key", API_KEY)
+    url.searchParams.append("language", "en-US")
+    url.searchParams.append("query", name)
+    url.searchParams.append("page", "1")
+    url.searchParams.append("include_adult", "false")
+    const result = await axios.get(url.toString())
+    const searchResult = result.data
+    const currPerson = searchResult?.results?.[0] || {}
+
+    if (searchResult?.total_results != 0) {
+        return currPerson
+    } else {
+        return {}
+    }
+}
+
 async function queryMovieByName(name) {
     const url = new URL("/3/search/movie", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
@@ -169,8 +202,8 @@ function getBestImage(images) {
     return image
 }
 
-async function getKnownForMoviesByDirector(director) {
-    const { known_for } = director
+async function getKnownForMoviesByPerson(person) {
+    const { known_for } = person
     const backdrops = []
     const movies = known_for.map(kf => {
         if (backdrops.length < 3) {
@@ -189,8 +222,39 @@ async function getKnownForMoviesByDirector(director) {
     return { backdropsBuffer, movies }
 }
 
+async function generateFeaturedPersonMovies(person, movies = []) {
+    if (movies.length) {
+        const moviesQuery = movies.map(mov => mov.id ? queryMovieById(mov.id) : queryMovieByName(mov.name))
+        const moviesRaw = await Promise.all(moviesQuery)
+        // const movieImages = images.length ? images : getTopImages(await queryMovieImagesById(movie.id))
+        const getCustomImage = ({ image }) => image
+
+        for await (const mov of movies) {
+            if (mov.image) {
+                return new Promise((resolve) => resolve(mov.image))
+            }
+            const images = await queryMovieImagesById(mov.id)
+            const bestImageDB = getBestImage(images)
+            return bestImageDB
+        }
+
+        return moviesValues
+    } else if (person.known_for) {
+        const movies = getKnownForMoviesByPerson(person)
+
+    }
+}
+
+async function getFeaturedPersonObject(person, movies = []) {
+    // const movieQueries = movies.length ? movies.map((movie) => queryMovieByName(movie.name))
+    return {
+        id: person.id,
+        name: person.name
+    }
+}
+
 async function getDirectorObject(director, movies = []) {
-    const backdropsBuffer = await getKnownForMoviesByDirector(director)
+    const backdropsBuffer = await getKnownForMoviesByPerson(director)
     return {
         id: director.id,
         name: director.name,
@@ -223,7 +287,6 @@ async function getMoviePostObject(movie) {
         id: movie.id,
         original_title: movie.title,
         overview: movie.overview,
-        // tagline: movie.tagline,
         poster_path: posterBuffer,
         original_poster,
         title: movie.title,
@@ -235,26 +298,44 @@ async function getMoviePostObject(movie) {
     }
 }
 
+async function getPersonById(id) {
+    const person = await queryPersonById(id)
+    return person
+}
+
+async function getPersonByName(name, movies) {
+    const person = await queryPersonByName(name)
+    const personObject = getFeaturedPersonObject(person, movies)
+    return personObject
+}
+
 async function getMovieByName(name) {
     const movie = await queryMovieByName(name)
-    const movieObject = await getMoviePostObject(movie)
-    return movieObject
+    if (movie) {
+        const movieObject = await getMoviePostObject(movie)
+        return movieObject
+    }
+    return {}
 }
 
 async function getMovieById(id) {
     const movie = await queryMovieById(id)
-    const movieObject = await getMoviePostObject(movie)
-    return movieObject
+    if (movie) {
+        const movieObject = await getMoviePostObject(movie)
+        return movieObject
+    }
+    return {}
 }
 
 async function getDirectorByName(name, movies = []) {
+    console.log("Director", name)
     const director = await queryDirectorByName(name)
     const directorObject = await getDirectorObject(director)
     return directorObject
 }
 
 async function makeMovieRequest({ name = "", id = "" }) {
-    console.log(name)
+    console.log("List", name)
     const movie = id ? await getMovieById(id) : await getMovieByName(name)
     const value = {
         ...movie,
@@ -264,6 +345,7 @@ async function makeMovieRequest({ name = "", id = "" }) {
 }
 
 async function makeCinematographyRequest({ name = "", id = "", images = [] }) {
+    console.log("Cinematography", name)
     const movie = id ? await getMovieById(id) : await getMovieByName(name)
     const movieImages = images.length ? images : getTopImages(await queryMovieImagesById(movie.id))
     const imageBuffer = await Promise.all(movieImages.map(getUrlImageToBuffer))
@@ -275,6 +357,7 @@ async function makeCinematographyRequest({ name = "", id = "", images = [] }) {
 }
 
 async function makeOriginalSoundtrackRequest({ name = "", id = "", spotify }) {
+    console.log("Soundtrack", name)
     const movie = id ? await getMovieById(id) : await getMovieByName(name)
     const value = {
         images: [movie?.poster_path],
@@ -289,7 +372,12 @@ async function makeDirectorRequest({ name = "", id = "", movies = [] }) {
     return data
 }
 
-module.exports = { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest }
+async function makeFeaturedPersonRequest({ name = "", id = "", featured = [], thread = false }) {
+    const data = id ? await getPersonById(id) : await getPersonByName(name)
+    return data
+}
+
+module.exports = { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest }
 
 //tagline missing
 
