@@ -13,6 +13,14 @@ var jsonParser = bodyParser.json()
 
 const port = process.env.PORT || 4000;
 
+app.get('/test/:movie', async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const movie = await makeMovieRequest({ name: req.params.movie })
+    movie.overview = "The paragraph is about how Hollywood was full of ambition and excess and how it all eventually led to a fall."
+    tweetMovie(movie, "test")
+    return res.send("ok")
+});
+
 
 app.get('/:movie', async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
@@ -57,6 +65,8 @@ app.post('/music/:movie', jsonParser, async (req, res) => {
 
     return res.send("ok")
 })
+
+
 
 
 app.listen(port, () => {
