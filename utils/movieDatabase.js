@@ -202,7 +202,7 @@ function getBestImage(images) {
     return image
 }
 
-async function getKnownForMoviesByPerson(person) {
+async function getKnownForMoviesByPerson(person, buffer = true) {
     const { known_for } = person
     const backdrops = []
     const movies = known_for.map(kf => {
@@ -217,7 +217,7 @@ async function getKnownForMoviesByPerson(person) {
         }
     })
 
-    const backdropsBuffer = await Promise.all(backdrops.map(getUrlImageToBuffer))
+    const backdropsBuffer = buffer ? await Promise.all(backdrops.map(getUrlImageToBuffer)) : backdrops
 
     return { backdropsBuffer, movies }
 }
@@ -226,30 +226,40 @@ async function generateFeaturedPersonMovies(person, movies = []) {
     if (movies.length) {
         const moviesQuery = movies.map(mov => mov.id ? queryMovieById(mov.id) : queryMovieByName(mov.name))
         const moviesRaw = await Promise.all(moviesQuery)
-        // const movieImages = images.length ? images : getTopImages(await queryMovieImagesById(movie.id))
-        const getCustomImage = ({ image }) => image
 
-        for await (const mov of movies) {
-            if (mov.image) {
-                return new Promise((resolve) => resolve(mov.image))
+        const movieImageObjectComplete = moviesRaw.map((m, index) => ({ userMovie: movies[index], ...m }))
+
+        const imageWithData = []
+
+        for await (const mov of movieImageObjectComplete) {
+            // console.log(mov)
+            const imgObject = { name: mov.title, id: mov.id, overview: mov.overview, image: "" }
+            if (mov?.userMovie?.image) {
+                const image = mov?.userMovie?.image
+                imageWithData.push({ ...imgObject, image })
+                continue
             }
             const images = await queryMovieImagesById(mov.id)
             const bestImageDB = getBestImage(images)
-            return bestImageDB
+            imageWithData.push({ ...imgObject, image: `${IMAGE_BASE_URL}${bestImageDB?.file_path}` })
         }
 
-        return moviesValues
+        return imageWithData
     } else if (person.known_for) {
-        const movies = getKnownForMoviesByPerson(person)
-
+        const { backdropsBuffer: backdrops } = await getKnownForMoviesByPerson(person, false)
+        return backdrops.map((bd, index) => {
+            const { id, title, overview } = person.known_for[index]
+            return { image: bd, id, name: title, overview }
+        })
     }
 }
 
 async function getFeaturedPersonObject(person, movies = []) {
-    // const movieQueries = movies.length ? movies.map((movie) => queryMovieByName(movie.name))
+    const movieImages = await generateFeaturedPersonMovies(person, movies)
     return {
         id: person.id,
-        name: person.name
+        name: person.name,
+        movies: movieImages
     }
 }
 
@@ -298,14 +308,16 @@ async function getMoviePostObject(movie) {
     }
 }
 
-async function getPersonById(id) {
-    const person = await queryPersonById(id)
-    return person
+async function getPersonById(id, movies) {
+    const { name } = await queryPersonById(id)
+    const person = await queryPersonByName(name)
+    const personObject = await getFeaturedPersonObject(person, movies)
+    return personObject
 }
 
 async function getPersonByName(name, movies) {
     const person = await queryPersonByName(name)
-    const personObject = getFeaturedPersonObject(person, movies)
+    const personObject = await getFeaturedPersonObject(person, movies)
     return personObject
 }
 
@@ -372,9 +384,16 @@ async function makeDirectorRequest({ name = "", id = "", movies = [] }) {
     return data
 }
 
-async function makeFeaturedPersonRequest({ name = "", id = "", featured = [], thread = false }) {
-    const data = id ? await getPersonById(id) : await getPersonByName(name)
-    return data
+async function makeFeaturedPersonRequest({ name = "", id = "", featured = [] }) {
+    const person = id ? await getPersonById(id, featured) : await getPersonByName(name, featured)
+    const personBuffer = await Promise.all(person.movies.map(m => getUrlImageToBuffer(m.image)))
+    person.movies = person.movies?.map((pm, index) => {
+        return {
+            ...pm,
+            bufferImage: personBuffer[index]
+        }
+    })
+    return person
 }
 
 module.exports = { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest }

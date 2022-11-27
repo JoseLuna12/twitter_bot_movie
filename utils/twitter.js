@@ -1,6 +1,7 @@
 const { TwitterApi } = require("twitter-api-v2");
 const { resumeMovie, getEmojisForMovie } = require("./openAi")
-const { add, addTweetId } = require("../database/index")
+const { add, addTweetId } = require("../database/index");
+const e = require("express");
 
 const client = new TwitterApi({
     appKey: process.env.API_KEY,
@@ -34,6 +35,7 @@ const movieHashtags = {
     cinematographyHashtags: `\n\n#Cinematography #AppreciationPost`,
     soundtrackHashtags: `\n\n#MovieScore #Spotify`,
     director: `\n\n#Director`,
+    featuredHashtags: `\n\n#Featuring`,
     titleHashtag: (movie) => {
         if (movie) {
             const { original_title } = movie
@@ -47,8 +49,8 @@ const movieHashtags = {
 function generateMovieObject(content, movie, key) {
     return {
         content,
-        hashtags: movieHashtags[key],
-        titleHashtag: movieHashtags.titleHashtag(movie),
+        hashtags: key ? movieHashtags[key] : "",
+        titleHashtag: movie ? movieHashtags.titleHashtag(movie) : "",
     }
 }
 
@@ -100,6 +102,41 @@ async function generateDirectorContent(director, hashtagskey) {
     }).join("")
     const content = `Cinema by ${name} 🎞️\n${moviesText}`
     return generateMovieObject(content, director, hashtagskey)
+}
+
+async function getBulkAiMovieSummary(movies) {
+    const newSummary = await Promise.all(movies.map(m => resumeMovie(m.overview)))
+    return movies.map((m, index) => ({ ...m, aiSummary: newSummary[index] }))
+}
+
+async function getThreadFromFeaturedPerson(person) {
+    return person?.movies?.map((p, index) => {
+        const aiSummary = p.aiSummary
+
+        if (index == 0) {
+            return generateMovieObject(`Featuring ${person.name} 🍿\n${index + 1}) ${p.name}\n${p.overview}`, { original_title: person.name }, "featuredHashtags")
+        } else {
+            return generateMovieObject(`${index + 1}) ${p.name}\n${p.overview}`)
+        }
+    })
+}
+
+function getSingleFeaturedPerson(person) {
+    const movies = person?.movies?.map((p) => {
+        return `\n• ${p.name}`
+    })?.join("")
+    return `Featuring ${person.name}${movies}`
+}
+
+async function generateFeaturedByContent({ person, thread }, hashtagskey) {
+    let content = ""
+    if (thread) {
+        content = await getThreadFromFeaturedPerson(person)
+        return content
+    } else {
+        content = getSingleFeaturedPerson(person)
+        return generateMovieObject(content, { ...person, original_title: person.name }, hashtagskey)
+    }
 }
 
 async function saveTweet(tweet) {
@@ -176,6 +213,11 @@ async function getTweetValuesForDirector(director) {
     return { content, mediaIds }
 }
 
+async function getTweetValuesForFeaturedPerson({ person, thread }) {
+    const featuredData = await generateFeaturedByContent({ person, thread }, "featuredHashtags")
+    console.log(featuredData)
+}
+
 async function tweetMovie(movie, type) {
     let content = ""
     let media_ids = []
@@ -201,10 +243,12 @@ async function tweetMovie(movie, type) {
             content = directorContent
             media_ids = directorMediaIds
             break;
+        case "featuredby":
+            await getTweetValuesForFeaturedPerson(movie)
+            break;
         case "test":
             const testValues = await testTweetValues(movie, generateMovieListContent, "listHashtags")
             console.log(testValues)
-            console.log(testValues.length)
         default:
             break;
     }

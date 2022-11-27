@@ -72,8 +72,9 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
     const id = req.body.id || ""
     const movieFeatures = req.body.features || []
     const inThread = req.body.thread || false
-
-    const test = makeFeaturedPersonRequest({ name: person, id, featured: movieFeatures, thread: inThread })
+    const queriedPerson = await makeFeaturedPersonRequest({ name: person, id, featured: movieFeatures })
+    tweetMovie({ person: queriedPerson, thread: inThread }, "featuredby")
+    return res.send("ok")
 })
 
 
