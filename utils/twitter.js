@@ -1,6 +1,6 @@
 const { TwitterApi } = require("twitter-api-v2");
 const { resumeMovie, getEmojisForMovie } = require("./openAi")
-const { add, addTweetId } = require("../database/index");
+const { add, addTweetId, addThreadById } = require("../database/index");
 const e = require("express");
 
 const client = new TwitterApi({
@@ -19,8 +19,6 @@ const twitterBearer = bearer.readOnly;
 
 let tweetType = "list"
 let lastDbTweet = 0
-
-// twitterClient.v2.tweetThread
 
 function uploadMultipleImages(images) {
     return Promise.all(images.map(updloadImage))
@@ -110,13 +108,16 @@ async function getBulkAiMovieSummary(movies) {
 }
 
 async function getThreadFromFeaturedPerson(person) {
+
     return person?.movies?.map((p, index) => {
-        const aiSummary = p.aiSummary
+        const aiSummary = p.aiSummary || p.overview
 
         if (index == 0) {
-            return generateMovieObject(`Featuring ${person.name} 🍿\n${index + 1}) ${p.name}\n${p.overview}`, { original_title: person.name }, "featuredHashtags")
+            const movieObj = generateMovieObject(`Featuring ${person.name} 🍿\n${index + 1}) ${p.name}\n${aiSummary}`, { original_title: person.name }, "featuredHashtags")
+            return generateTweetContent(movieObj, movieHashtags.popular)
         } else {
-            return generateMovieObject(`${index + 1}) ${p.name}\n${p.overview}`)
+            const movieObj = generateMovieObject(`${index + 1}) ${p.name}\n${aiSummary}`)
+            return generateTweetContent(movieObj, [])
         }
     })
 }
@@ -131,11 +132,13 @@ function getSingleFeaturedPerson(person) {
 async function generateFeaturedByContent({ person, thread }, hashtagskey) {
     let content = ""
     if (thread) {
+        person.movies = await getBulkAiMovieSummary(person?.movies)
         content = await getThreadFromFeaturedPerson(person)
         return content
     } else {
         content = getSingleFeaturedPerson(person)
-        return generateMovieObject(content, { ...person, original_title: person.name }, hashtagskey)
+        const movieObject = generateMovieObject(content, { ...person, original_title: person.name }, hashtagskey)
+        return generateTweetContent(movieObject, movieHashtags.popular)
     }
 }
 
@@ -148,9 +151,10 @@ async function saveTweet(tweet) {
 }
 
 function generateTweetContent(tweetContentObject, hashtags = []) {
+    console.log({ tweetContentObject })
     const popularHashtags = hashtags.join(" ")
-    const titleHashtag = tweetContentObject.titleHashtag
-    const postHashtags = tweetContentObject.hashtags
+    const titleHashtag = tweetContentObject.titleHashtag || ""
+    const postHashtags = tweetContentObject.hashtags || ""
 
     const finalHashtags = `${postHashtags}${titleHashtag} ${popularHashtags}`
 
@@ -173,6 +177,7 @@ function generateTweetContent(tweetContentObject, hashtags = []) {
             tweetContentObjectCopy.hashtags = ""
             return generateTweetContent(tweetContentObjectCopy, [])
         }
+        return tweetContent
     } else {
         saveTweet(finalTweet)
         return tweetContent
@@ -215,7 +220,8 @@ async function getTweetValuesForDirector(director) {
 
 async function getTweetValuesForFeaturedPerson({ person, thread }) {
     const featuredData = await generateFeaturedByContent({ person, thread }, "featuredHashtags")
-    console.log(featuredData)
+    const images = await uploadMultipleImages(person.movies.map(m => m.bufferImage))
+    return { content: featuredData, mediaIds: images }
 }
 
 async function tweetMovie(movie, type) {
@@ -244,7 +250,9 @@ async function tweetMovie(movie, type) {
             media_ids = directorMediaIds
             break;
         case "featuredby":
-            await getTweetValuesForFeaturedPerson(movie)
+            const { content: featuredContent, mediaIds: featuredMediaIds } = await getTweetValuesForFeaturedPerson(movie)
+            content = featuredContent
+            media_ids = featuredMediaIds
             break;
         case "test":
             const testValues = await testTweetValues(movie, generateMovieListContent, "listHashtags")
@@ -256,9 +264,20 @@ async function tweetMovie(movie, type) {
         console.log(type)
         console.log(content)
         console.log(content.length)
-        if (content) {
+        if (content && !movie.thread) {
             const { data: { id } } = await twitterClient.v2.tweet(content, { media: { media_ids } });
             await addTweetId({ tweet_id: id, id: lastDbTweet })
+        }
+        if (content?.length && movie.thread) {
+            const threadTweets = content.map((cont, index) => {
+                return {
+                    text: cont,
+                    media: { media_ids: [media_ids[index]] }
+                }
+            })
+            const newTweets = await twitterClient.v2.tweetThread(threadTweets)
+            const tweetsIds = newTweets.map(nt => nt.data.id)
+            await addThreadById({ id: lastDbTweet, thread: tweetsIds, tweet_id: tweetsIds[0] })
         }
     } catch (e) {
         console.log(e)

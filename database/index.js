@@ -14,4 +14,8 @@ async function addTweetId({ tweet_id, id }) {
     return supabase.from("movies_tweeted").update({ tweet_id }).eq('id', id).select("id")
 }
 
-module.exports = { add, addTweetId, db: supabase }
+async function addThreadById({ id, thread, tweet_id }) {
+    return supabase.from("movies_tweeted").update({ thread, tweet_id }).eq('id', id).select("id")
+}
+
+module.exports = { add, addTweetId, addThreadById, db: supabase }
