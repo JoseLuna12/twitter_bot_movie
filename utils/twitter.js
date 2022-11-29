@@ -11,6 +11,7 @@ const client = new TwitterApi({
 });
 
 const MAX_CHARACTERS = 280
+const CHARS_THRESHOLD = 270
 
 const bearer = new TwitterApi(process.env.BEARER_TOKEN);
 
@@ -19,9 +20,10 @@ const twitterBearer = bearer.readOnly;
 
 let tweetType = "list"
 let lastDbTweet = 0
+let tweetedDBList = []
 
 function uploadMultipleImages(images) {
-    return Promise.all(images.map(updloadImage))
+    return Promise.all(images?.map(updloadImage))
 }
 function updloadImage(image) {
     return twitterClient.v1.uploadMedia(image, { mimeType: "JPG", target: "tweet" })
@@ -104,7 +106,11 @@ async function generateDirectorContent(director, hashtagskey) {
 
 async function getBulkAiMovieSummary(movies) {
     const newSummary = await Promise.all(movies.map(m => resumeMovie(m.overview)))
-    return movies.map((m, index) => ({ ...m, aiSummary: newSummary[index] }))
+    const getToFirstPoint = (summary) => {
+        const sentence = summary.includes(".") ? summary?.split(".")?.[0] : summary?.split("/n")?.[0]
+        return sentence
+    }
+    return movies.map((m, index) => ({ ...m, aiSummary: newSummary[index].length > CHARS_THRESHOLD ? getToFirstPoint(newSummary[index]) : newSummary[index] }))
 }
 
 async function getThreadFromFeaturedPerson(person) {
@@ -114,10 +120,10 @@ async function getThreadFromFeaturedPerson(person) {
 
         if (index == 0) {
             const movieObj = generateMovieObject(`Featuring ${person.name} 🍿\n${index + 1}) ${p.name}\n${aiSummary}`, { original_title: person.name }, "featuredHashtags")
-            return generateTweetContent(movieObj, movieHashtags.popular)
+            return generateTweetContent(movieObj, movieHashtags.popular, true)
         } else {
             const movieObj = generateMovieObject(`${index + 1}) ${p.name}\n${aiSummary}`)
-            return generateTweetContent(movieObj, [])
+            return generateTweetContent(movieObj, [], true)
         }
     })
 }
@@ -142,16 +148,20 @@ async function generateFeaturedByContent({ person, thread }, hashtagskey) {
     }
 }
 
-async function saveTweet(tweet) {
+async function saveTweet(tweet, thread = false) {
     const { error, data } = await add({ ...tweet, type: tweetType })
-    if (!error) {
+    if (!error && !thread) {
         lastDbTweet = data?.[0].id
+        console.log("Saving to db Success!", data?.[0].id)
+    }
+    if (!error && thread) {
+        //tweetedDBList
+        tweetedDBList.push(data?.[0].id)
         console.log("Saving to db Success!", data?.[0].id)
     }
 }
 
-function generateTweetContent(tweetContentObject, hashtags = []) {
-    console.log({ tweetContentObject })
+function generateTweetContent(tweetContentObject, hashtags = [], thread = false) {
     const popularHashtags = hashtags.join(" ")
     const titleHashtag = tweetContentObject.titleHashtag || ""
     const postHashtags = tweetContentObject.hashtags || ""
@@ -177,9 +187,9 @@ function generateTweetContent(tweetContentObject, hashtags = []) {
             tweetContentObjectCopy.hashtags = ""
             return generateTweetContent(tweetContentObjectCopy, [])
         }
-        return tweetContent
+        return ""
     } else {
-        saveTweet(finalTweet)
+        saveTweet(finalTweet, thread)
         return tweetContent
     }
 }
@@ -266,7 +276,9 @@ async function tweetMovie(movie, type) {
         console.log(content.length)
         if (content && !movie.thread) {
             const { data: { id } } = await twitterClient.v2.tweet(content, { media: { media_ids } });
-            await addTweetId({ tweet_id: id, id: lastDbTweet })
+            if (id) {
+                await addTweetId({ tweet_id: id, id: lastDbTweet })
+            }
         }
         if (content?.length && movie.thread) {
             const threadTweets = content.map((cont, index) => {
@@ -276,8 +288,20 @@ async function tweetMovie(movie, type) {
                 }
             })
             const newTweets = await twitterClient.v2.tweetThread(threadTweets)
-            const tweetsIds = newTweets.map(nt => nt.data.id)
-            await addThreadById({ id: lastDbTweet, thread: tweetsIds, tweet_id: tweetsIds[0] })
+            if (newTweets?.length) {
+                const tweetsIds = newTweets.map(nt => nt.data.id)
+                let index = 0
+                for await (const tid of tweetedDBList) {
+                    if (index == 0) {
+                        await addThreadById({ id: tid, thread: tweetsIds, tweet_id: tweetsIds[0] })
+                    } else {
+                        await addTweetId({ tweet_id: tweetsIds[index], id: tid })
+                    }
+                    index++
+                }
+                tweetedDBList = []
+                index = 0
+            }
         }
     } catch (e) {
         console.log(e)

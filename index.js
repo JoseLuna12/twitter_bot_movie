@@ -2,14 +2,32 @@ if (!process.env.PORT) {
     require("dotenv").config();
 }
 
+/* 
+TODO refactor movie api to only return data
+TODO refactor movie api to return the same object
+TODO refactor tweet to return a tweet object 
+    {
+        head: string
+        body: string
+        hashtag: string
+        images: string[]
+    }
+TODO store this object in db
+TODO create function that recieves tweet object and tweet it
+*/
+
 const { tweetMovie } = require("./utils/twitter")
 const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest } = require("./utils/movieDatabase")
 
 const express = require('express')
+const cors = require('cors')
+
 var bodyParser = require('body-parser')
 
 const app = express()
 var jsonParser = bodyParser.json()
+app.use(cors())
+// app.use(jsonParser)
 
 const port = process.env.PORT || 4000;
 
@@ -17,8 +35,9 @@ app.get('/test/:movie', async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const movie = await makeMovieRequest({ name: req.params.movie })
     movie.overview = "The paragraph is about how Hollywood was full of ambition and excess and how it all eventually led to a fall."
-    tweetMovie(movie, "test")
-    return res.send("ok")
+    // tweetMovie(movie, "test")
+    // return res.send("ok")
+    res.json(movie)
 });
 
 
