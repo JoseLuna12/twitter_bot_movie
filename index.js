@@ -15,6 +15,8 @@ TODO refactor tweet to return a tweet object
 TODO store this object in db
 TODO create function that recieves tweet object and tweet it
 */
+const {movie: movieQuery, director} = require("./utils/movie")
+const {movieToTweet, postTweetById} = require("./utils/twitterapi")
 
 const { tweetMovie } = require("./utils/twitter")
 const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest } = require("./utils/movieDatabase")
@@ -22,19 +24,19 @@ const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackReque
 const express = require('express')
 const cors = require('cors')
 
-var bodyParser = require('body-parser')
+var bodyParser = require('body-parser');
+const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById } = require("./database");
 
 const app = express()
 var jsonParser = bodyParser.json()
 app.use(cors())
-// app.use(jsonParser)
 
 const port = process.env.PORT || 4000;
 
 app.get('/test/:movie', async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const movie = await makeMovieRequest({ name: req.params.movie })
-    movie.overview = "The paragraph is about how Hollywood was full of ambition and excess and how it all eventually led to a fall."
+    // movie.overview = "The paragraph is about how Hollywood was full of ambition and excess and how it all eventually led to a fall."
     // tweetMovie(movie, "test")
     // return res.send("ok")
     res.json(movie)
@@ -96,6 +98,87 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
     return res.send("ok")
 })
 
+
+
+
+
+
+
+
+
+
+//create movie tweet
+app.post('/api/movie/', jsonParser, async(req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const name = req.body.name
+    const id = req.body.id
+    const options = req.body.options
+    const type = req.body.type || 'list'
+    const images = req.body.images || []
+    try{
+        const movie = await movieQuery({name, id}, images)
+        const movieTweetObject = await movieToTweet(movie, options, type)
+        res.json({movieTweet: movieTweetObject})
+    }catch(err){
+        console.log(err)
+        res.json({error: "there was a problem: " + `${err}`})
+    }
+})
+
+//create Director tweet
+app.post("/api/director/", jsonParser, async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const name = req.body.name
+    const id = req.body.id
+    const options = req.body.options
+    const type = req.body.type || 'list'
+    const images = options?.Images ? req.body.images || [] : []
+    try{
+        const directorData = await director({name, id, images})
+        const movieTweetObject = await movieToTweet(directorData, options, type)
+        res.json({movieTweet: movieTweetObject})
+    }catch(err){
+        console.log(err)
+        res.json({error: "there was a problem: " + `${err}`})
+    }
+})
+
+//get tweet from db
+app.get('/api/supabase/tweet/:id', async(req,res)=> {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const id = req.params.id
+    const value = await getTweetById(id)
+    const tweet = getSupabaseData(value)
+    return res.json(tweet)
+})
+
+//post a tweet to twitter
+app.post('/api/tweet/',jsonParser, async(req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const id = req.body?.id
+    console.log(id)
+    const test = await postTweetById(id)
+    console.log(test)
+    res.json({ok: "ok"})
+})
+
+//update a tweet in the db
+app.put('/api/supabase/tweet/:id', jsonParser, async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const tweet = req.body.tweet
+    const id = req.params.id
+    const supabaseTweet = await updateTweetById(id, tweet)
+    const response = getSupabaseID(supabaseTweet)
+    res.json({response})
+})
+
+//delete a tweet from the db
+app.delete('/api/supabase/tweet/:id', async(req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const id = req.params.id
+    await deleteTweetById(id)
+    res.json("deleted")
+})
 
 
 
