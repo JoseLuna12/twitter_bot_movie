@@ -61,7 +61,7 @@ async function queryMovieById(id){
     }
 }
 
-async function queryDirectorByName(name) {
+async function queryPersonByName(name) {
     const url = new URL("/3/search/person", BASE_URL)
     url.searchParams.append("api_key", API_KEY)
     url.searchParams.append("language", "en-US")
@@ -79,4 +79,4 @@ async function queryDirectorByName(name) {
     }
 }
 
-module.exports = {queryMovieByName, queryMovieCrewById, queryMovieImagesById, queryMovieById, queryDirectorByName}
+module.exports = {queryMovieByName, queryMovieCrewById, queryMovieImagesById, queryMovieById, queryPersonByName}

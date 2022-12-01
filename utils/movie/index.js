@@ -1,8 +1,26 @@
-const {queryMovieByName, queryMovieCrewById, queryMovieImagesById, queryMovieById, queryDirectorByName} = require("./api")
-const {getDirector, getDirectorOfPhotography, getMusicComposer, getBestImage, addBaseUrlToImage, getTopImages, getDirectorObject} = require("./util")
+const {queryMovieByName, queryMovieCrewById, queryMovieImagesById, queryMovieById, queryPersonByName} = require("./api")
+const {getDirector, getDirectorOfPhotography, getMusicComposer, getBestImage, addBaseUrlToImage, getTopImages, getPersonObject, getKnownForMoviesByPerson} = require("./util")
 
-async function getCompleteData(movie, images = []){
-    const {crew} = await (queryMovieCrewById(movie.id))
+function completeCharactersData (cast, character){
+    if(character.id){
+        const char = cast?.find(c => c.id == character.id)
+        return char
+    }else {
+        return null
+    }
+}
+
+async function getCompleteData(movie, images = [],character = {}){
+
+    const {crew, cast} = await (queryMovieCrewById(movie.id))
+    let role = ""
+
+    if(character?.id){
+        const characterData = completeCharactersData(cast, character)
+        if(characterData?.character){
+            role = characterData?.character
+        }
+    }
     
     const director = getDirector(crew)
     const directorOfPhotography = getDirectorOfPhotography(crew)
@@ -28,29 +46,41 @@ async function getCompleteData(movie, images = []){
         bestBackdrop,
         vote_average,
         topImages,
+        role,
         release_date: getYearFromReleaseDate(movie.release_date)
     }
 
 }
 
-async function director({name, id, images}){
-    const data = await queryDirectorByName(name)
-    const customMoviesPromises = images?.map(mov=> movie(mov, mov.url ?[{url:mov.url}] : [])) 
+async function person({name, id, images}){
+    const data = await queryPersonByName(name)
+    const character = {id: data.id, known_for_department: data.known_for_department}
+
+    const moviesToGet = !images.length ? 
+    character.known_for_department == "Acting" ?
+    getKnownForMoviesByPerson(data).map(mov => ({...mov, url: mov.image})) : images
+    : images
+
+    const customMoviesPromises = moviesToGet?.map(mov=> movie(mov, mov.url ?[{url:mov.url}] : [], character)) 
     const customMovies = await Promise.all(customMoviesPromises)
-    const directorMovies = customMovies.map((cm, index) => {
+
+    const featuringMovies = customMovies?.map((cm, index) => {
         return {
             id: cm.id,
             title: cm.title,
             release_date: cm.release_date,
+            role: cm.role,
+            overview: cm.overview,
+            bestPoster: cm.bestPoster,
+            bestBackdrop: cm.bestBackdrop,
             image: images[index]?.url ? images[index]?.url : cm.bestBackdrop
         }
     })
-    const director = getDirectorObject(data, directorMovies)
-    // return director
-    return director
+    const person = getPersonObject(data, featuringMovies)
+    return person
 }
 
-async function movie({name, id}, images){
+async function movie({name, id}, images, character = {}){
     const data = id ? await queryMovieById(id) : await queryMovieByName(name)
 
     if(data?.id){
@@ -63,7 +93,7 @@ async function movie({name, id}, images){
             backdrop_path, 
             popularity, 
             release_date,
-            poster_path
+            poster_path,
         } = data
         const movie = {
             id, 
@@ -74,13 +104,13 @@ async function movie({name, id}, images){
             vote_average, 
             backdrop_path, 
             popularity, 
-            release_date
+            release_date,
         }
-        return await getCompleteData(movie, images)
+        return await getCompleteData(movie, images, character)
     }else{
         throw new Error("no movie found")
     }
 
 }
 
-module.exports = {movie, director}
+module.exports = {movie, person}

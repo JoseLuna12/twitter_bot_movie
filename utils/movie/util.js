@@ -97,12 +97,13 @@ function getKnownForMoviesByPerson(person) {
     return movies
 }
 
-function getDirectorObject(director, movies = []) {
-    const knownFor = movies.length ? movies : getKnownForMoviesByPerson(director)
+function getPersonObject(person, movies = []) {
+    const knownFor = movies.length ? movies : getKnownForMoviesByPerson(person)
     return {
-        id: director.id,
-        name: director.name,
-        original_title: director.name,
+        id: person.id,
+        name: person.name,
+        original_title: person.name,
+        known_for_department: person.known_for_department,
         movies,
         knownFor
     }
@@ -123,4 +124,4 @@ function getDirectorOfPhotography(cast) {
     return mergeNames(directorPhotography)
 }
 
-module.exports = {getMusicComposer, getDirector, getDirectorOfPhotography, getBestImage, addBaseUrlToImage, getTopImages, getDirectorObject}
+module.exports = {getMusicComposer, getDirector, getDirectorOfPhotography, getBestImage, addBaseUrlToImage, getTopImages, getPersonObject, getKnownForMoviesByPerson}

@@ -22,6 +22,17 @@ function deleteTweetById(id){
     return supabase.from("movies_tweet").delete().eq('id', id)
 }
 
+function addIdsToThread(ids = []){
+    const [parentId, ...childIds] = ids
+    return supabase.from("movies_tweet").update({thread_ids: childIds}).eq('id', parentId).select("id")
+}
+
+async function removeIdToThread(parentId, childId){
+    const parentTweet = getSupabaseData(await getTweetById(parentId))
+    const newThreadIds = parentTweet?.thread_ids.filter(thrId => thrId != childId)
+    return supabase.from("movies_tweet").update({thread_ids: newThreadIds}).eq('id', parentId).select("id")
+}
+
 
 
 
@@ -61,4 +72,4 @@ function getSupabaseID(obj){
 
 }
 
-module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById }
+module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread }
