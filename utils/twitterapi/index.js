@@ -261,4 +261,9 @@ async function postTweetById(id){
     return
 }
 
-module.exports = {movieToTweet, postTweetById}
+async function retweetById(tweetId){
+    const {data: {id}} = await twitterClient.v2.me()
+    return twitterClient.v2.retweet(id, tweetId)
+}
+
+module.exports = {movieToTweet, postTweetById, retweetById}

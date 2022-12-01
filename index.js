@@ -16,7 +16,7 @@ TODO store this object in db
 TODO create function that recieves tweet object and tweet it
 */
 const {movie: movieQuery, person} = require("./utils/movie")
-const {movieToTweet, postTweetById} = require("./utils/twitterapi")
+const {movieToTweet, postTweetById, retweetById} = require("./utils/twitterapi")
 
 const { tweetMovie } = require("./utils/twitter")
 const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest } = require("./utils/movieDatabase")
@@ -25,7 +25,7 @@ const express = require('express')
 const cors = require('cors')
 
 var bodyParser = require('body-parser');
-const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread } = require("./database");
+const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets } = require("./database");
 
 const app = express()
 var jsonParser = bodyParser.json()
@@ -106,6 +106,17 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
 
 
 
+app.get('/api/supabase/tweets', async(req,res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const {data} = await getAllTweets()
+    return res.json({data})
+})
+
+app.get('/api/tweet/retweet/:id', async(req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const values = await retweetById(req.params.id)
+    return res.json({values})
+})
 
 //create movie tweet
 app.post('/api/movie/', jsonParser, async(req, res) => {

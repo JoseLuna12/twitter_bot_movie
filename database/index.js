@@ -14,6 +14,10 @@ function getTweetById(id){
     return supabase.from("movies_tweet").select().eq('id', id)
 }
 
+function getAllTweets(){
+    return supabase.from("movies_tweet").select()
+}
+
 function updateTweetById(id, data){
     return supabase.from("movies_tweet").update(data).eq('id', id).select("id")
 }
@@ -72,4 +76,4 @@ function getSupabaseID(obj){
 
 }
 
-module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread }
+module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread, getAllTweets }
