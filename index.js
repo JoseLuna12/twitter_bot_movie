@@ -15,6 +15,9 @@ TODO refactor tweet to return a tweet object
 TODO store this object in db
 TODO create function that recieves tweet object and tweet it
 */
+
+
+
 const {movie: movieQuery, person} = require("./utils/movie")
 const {movieToTweet, postTweetById, retweetById} = require("./utils/twitterapi")
 
@@ -25,7 +28,9 @@ const express = require('express')
 const cors = require('cors')
 
 var bodyParser = require('body-parser');
-const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets } = require("./database");
+const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById } = require("./database");
+const { getBufferFromImage, getBolbFromImage } = require("./utils/twitterapi/utl");
+const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalette, htmlToImage } = require("./utils/color");
 
 const app = express()
 var jsonParser = bodyParser.json()
@@ -105,6 +110,36 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
 
 
 
+app.post('/api/color/', jsonParser, async(req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const image = req.body.url
+    const imageName = req.body.name
+    const quantity = req.body.quantity || 10
+
+    const colorPallete = await getColorPalleteByUrl(image, quantity)
+    const rgb = getRgbFromPallete(colorPallete)
+    const sorted = sortColors(rgb)
+
+    const id = await saveImagePalette({url: image, palette: sorted, name: imageName})
+
+    return res.json({id})
+})
+
+app.get('/api/color/:imgid', async(req, res) => {
+    const id = req.params.imgid
+    const {error, data} = await getimagePaletteById(id)
+    res.setHeader("Content-Type", "text/html")
+    if(!error){
+        const img = data[0]
+        const imageToSend = await generateImagePalette(img)
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imageToSend.length
+          });
+        return res.end(imageToSend)
+    }
+    
+})
 
 app.get('/api/supabase/tweets', async(req,res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }

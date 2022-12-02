@@ -37,6 +37,14 @@ async function removeIdToThread(parentId, childId){
     return supabase.from("movies_tweet").update({thread_ids: newThreadIds}).eq('id', parentId).select("id")
 }
 
+function saveImagePalette(image){
+    return supabase.from("images_palette").insert(image).select("id")
+}
+
+function getimagePaletteById(id){
+    return supabase.from("images_palette").select().eq('id', id)
+}
+
 
 
 
@@ -76,4 +84,4 @@ function getSupabaseID(obj){
 
 }
 
-module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread, getAllTweets }
+module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }

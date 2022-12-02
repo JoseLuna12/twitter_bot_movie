@@ -7,4 +7,9 @@ async function getBufferFromImage(url){
     return returnedB64
 }
 
-module.exports = {getBufferFromImage}
+async function getBolbFromImage(url){
+    const buffer = await getBufferFromImage()
+    // const blob = Blob.
+}
+
+module.exports = {getBufferFromImage, getBolbFromImage}
