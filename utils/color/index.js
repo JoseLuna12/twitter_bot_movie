@@ -29,15 +29,18 @@ async function htmlToImage(html, url){
     let {data} = await axios.get(url, { responseType: 'arraybuffer' });
     const base64Image = Buffer.from(data).toString('base64');
     const dataURI = 'data:image/jpeg;base64,' + base64Image
+    
+
     return nodeHtmlToImage({
         output: './image.png',
         html,
-        content: { imageSource: dataURI }
+        content: { imageSource: dataURI },    
       })
 }
 
 
 async function generateImagePalette({url, palette, name}){
+
     const colors = palette.map(color => `rgb(${color.r}, ${color.g}, ${color.b})`)
     const colorPalleteDiv = (rgb) => `
     <div style="background-color: ${rgb}; flex: 1; height: 90px;" >
@@ -47,11 +50,11 @@ async function generateImagePalette({url, palette, name}){
     const colorsPaletteDivAll = colors.map(c => colorPalleteDiv(c)).join("")
 
     const imageDiv = `
-    <div>
-    <div>@MoonViesMe</div>
+    <div style="position: relative">
     <img style="width: 100%;" src="{{imageSource}}" alt="" />
     <div style="display: flex;">
     ${colorsPaletteDivAll}
+    <div style="position: absolute; top: 0; left: 0; font-size: 8px; color: white; padding: 3px;" >@MoonViesMe</div>
     </div>
     `
     const res = await htmlToImage(imageDiv, url)

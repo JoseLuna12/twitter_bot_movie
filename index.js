@@ -138,7 +138,7 @@ app.get('/api/color/:imgid', async(req, res) => {
           });
         return res.end(imageToSend)
     }
-    
+    res.end("error")
 })
 
 app.get('/api/supabase/tweets', async(req,res) => {
