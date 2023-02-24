@@ -120,6 +120,7 @@ app.post('/api/tweet/unretweet', jsonParser, async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     console.log(req.body)
     const values = await unretweetGroupById(req.body.tweetIds || [])
+    console.log(values)
     return res.json({ values })
 })
 
