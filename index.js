@@ -33,6 +33,9 @@ const { getBufferFromImage, getBolbFromImage } = require("./utils/twitterapi/utl
 const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalette, htmlToImage } = require("./utils/color");
 const { generateImage } = require("./utils/color/api");
 
+// import init, { get_image_color_palette } from "color_palette_gen";
+const { get_image_color_palette } = require("color_palette_gen")
+
 const app = express()
 var jsonParser = bodyParser.json()
 app.use(cors())
@@ -104,29 +107,71 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
     return res.send("ok")
 })
 
+function toBuffer(arrayBuffer) {
+    const buffer = Buffer.alloc(arrayBuffer.byteLength);
+    const view = arrayBuffer;
+    for (let i = 0; i < buffer.length; ++i) {
+        buffer[i] = view[i];
+    }
+    return buffer;
+}
 
+app.post('/api/color/wasm', jsonParser, async (req, res) => {
+    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
 
+    // await init()
 
+    const image = req.body.url
+    const imageName = req.body.name
+    const quantity = req.body.quantity || 21
+    res.setHeader("Content-Type", "text/html")
+    try {
+
+        const image_buffer = await getBufferFromImage(image)
+        const unit8arr = new Uint8Array(image_buffer);
+        const result = new Uint8Array(get_image_color_palette(unit8arr, "jpg", quantity))
+        const buff = Buffer.from(result);
+
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': buff.length
+        });
+        return res.end(buff)
+
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
+    }
+
+})
 
 
 
 
 app.post('/api/color/', jsonParser, async (req, res) => {
-    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const image = req.body.url
     const imageName = req.body.name
-    const quantity = req.body.quantity || 10
-
+    const quantity = req.body.quantity || 20
+    res.setHeader("Content-Type", "text/html")
     try {
         const colorPallete = await getColorPalleteByUrl(image, quantity)
         const rgb = getRgbFromPallete(colorPallete)
         const sorted = sortColors(rgb)
+        let imageGen = await generateImagePalette({ name: imageName, palette: sorted, url: image })
 
-        const { data } = await saveImagePalette({ url: image, palette: sorted, name: imageName })
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imageGen.length
+        });
+        return res.end(imageGen)
 
-        return res.json({ id: data?.[0].id })
-    } catch {
-        return res.json({ id: "" })
+        // const { data } = await saveImagePalette({ url: image, palette: sorted, name: imageName })
+
+
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
     }
 
 })
