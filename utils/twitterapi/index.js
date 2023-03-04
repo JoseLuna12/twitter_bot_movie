@@ -226,6 +226,7 @@ async function postPaletteColorTweet({ name }, image) {
     const mediaIds = await uploadMedia(image)
     const { data: { id: tweet_id } } = await twitterClient.v2.tweet(name, { media: { media_ids: [mediaIds] } })
     return tweet_id
+
 }
 
 async function postSingleTweet(id, { text, media }) {
@@ -272,4 +273,12 @@ async function retweetById(tweetId) {
     return twitterClient.v2.retweet(id, tweetId)
 }
 
-module.exports = { movieToTweet, postTweetById, retweetById, postPaletteColorTweet }
+async function unretweetGroupById(tweetIds) {
+    const { data: { id } } = await twitterClient.v2.me()
+    const result = tweetIds.map(t => {
+        return twitterClient.v2.unretweet(id, t)
+    })
+    return Promise.all(result)
+}
+
+module.exports = { movieToTweet, postTweetById, retweetById, unretweetGroupById, postPaletteColorTweet }
