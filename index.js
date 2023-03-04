@@ -30,7 +30,7 @@ const { getBufferFromImage, getBolbFromImage } = require("./utils/twitterapi/utl
 const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalette, htmlToImage } = require("./utils/color");
 const { generateImage } = require("./utils/color/api");
 
-const { get_image_color_palette } = require("./pkg/color_palette_gen");
+const { get_image_color_palette } = require("./utils/palette/color_palette_gen");
 
 const app = express()
 var jsonParser = bodyParser.json()
