@@ -36,11 +36,16 @@ async function listTweetFormat(movie, options) {
 
     const emojis = options.Emoji ? "" : ""
 
-    const imageToUse = options.Poster ? movie.bestPoster : movie.bestBackdrop
+    const imageToUse = options?.Palette ? movie.topImages :
+        options.Poster ? movie.bestPoster : movie.bestBackdrop
 
-    const head = `${movie.title}${emojis} ${year} 🍿\nDir: ${movie.director} 🎬`
-    const body = options.Ai ? movie.overview : movie.overview
-    const hashtag = `${movieHashtags.list} ${movieHashtags.popular.join(" ")} ${movieHashtags.transformToHashtag(movie.title)}`
+    const head_palette = "🎨 Color palette from: ";
+
+    const head = `${options?.Palette ? head_palette : ""}${movie.title}${emojis} ${year} 🍿\nDir: ${movie.director} 🎬`
+    const body = options.Palette ? "" :
+        options.Ai ? movie.overview : movie.overview
+    const hashtag = options.Palette ? `${movieHashtags.transformToHashtag(movie.title)} #ColorPalette #Color` :
+        `${movieHashtags.list} ${movieHashtags.popular.join(" ")} ${movieHashtags.transformToHashtag(movie.title)}`
     const images = [imageToUse]
 
     const tweet = {
@@ -50,7 +55,7 @@ async function listTweetFormat(movie, options) {
         images
     }
     const url = options.Url ? `${options.Url}` : ""
-    const supabase = await addv2({ ...tweet, tweet_type: "list", url })
+    const supabase = await addv2({ ...tweet, tweet_type: options.Palette ? "Palette" : "list", url })
     const dbId = getSupabaseID(supabase)
 
     return { ...tweet, dbId }

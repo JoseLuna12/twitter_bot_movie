@@ -250,6 +250,7 @@ app.post('/api/movie/', jsonParser, async (req, res) => {
     const options = req.body.options
     const type = req.body.type || 'list'
     const images = req.body.images || []
+    console.log({ images_index: images })
     try {
         const movie = await movieQuery({ name, id }, images)
         const movieTweetObject = await movieToTweet(movie, options, type)
