@@ -16,7 +16,7 @@ TODO store this object in db
 TODO create function that recieves tweet object and tweet it
 */
 const { movie: movieQuery, person } = require("./utils/movie")
-const { movieToTweet, postTweetById, retweetById, unretweetGroupById } = require("./utils/twitterapi")
+const { movieToTweet, postTweetById, retweetById, unretweetGroupById, postPaletteColorTweet } = require("./utils/twitterapi")
 
 const { tweetMovie } = require("./utils/twitter")
 const { makeMovieRequest, makeCinematographyRequest, makeOriginalSoundtrackRequest, makeDirectorRequest, makeFeaturedPersonRequest } = require("./utils/movieDatabase")
@@ -25,7 +25,12 @@ const express = require('express')
 const cors = require('cors')
 
 var bodyParser = require('body-parser');
-const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets } = require("./database");
+const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById } = require("./database");
+const { getBufferFromImage, getBolbFromImage } = require("./utils/twitterapi/utl");
+const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalette, htmlToImage } = require("./utils/color");
+const { generateImage } = require("./utils/color/api");
+
+const { get_image_color_palette } = require("color_palette_gen");
 
 const app = express()
 var jsonParser = bodyParser.json()
@@ -95,13 +100,126 @@ app.post('/featuring/:person', jsonParser, async (req, res) => {
     return res.send("ok")
 })
 
+function toBuffer(arrayBuffer) {
+    const buffer = Buffer.alloc(arrayBuffer.byteLength);
+    const view = arrayBuffer;
+    for (let i = 0; i < buffer.length; ++i) {
+        buffer[i] = view[i];
+    }
+    return buffer;
+}
+
+app.get('/api/color/wasm', jsonParser, async (req, res) => {
+    const image = req.query.url
+    const quantity = req.query.quantity || 21
+    res.setHeader("Content-Type", "text/html")
+    try {
+
+        const { base64: image_buffer, mime: fileType } = await getBufferFromImage(image, true)
+
+        const unit8arr = new Uint8Array(image_buffer);
+        const result = new Uint8Array(get_image_color_palette(unit8arr, fileType?.ext || "jpg", quantity))
+        const buff = Buffer.from(result);
+
+        res.writeHead(200, {
+            'Content-Type': fileType?.mime || 'image/png',
+            'Content-Length': buff.length
+        });
+
+        return res.end(buff)
+
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
+    }
+
+})
+
+app.post('/api/color/wasm', jsonParser, async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const image = req.body.url
+    const imageName = req.body.name
+    const quantity = req.body.quantity || 21
+    res.setHeader("Content-Type", "text/html")
+    try {
+
+        const image_buffer = await getBufferFromImage(image)
+        const unit8arr = new Uint8Array(image_buffer);
+        const result = new Uint8Array(get_image_color_palette(unit8arr, "jpg", quantity))
+        const buff = Buffer.from(result);
+
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': buff.length
+        });
+        return res.end(buff)
+
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
+    }
+
+})
 
 
 
 
+app.post('/api/color/', jsonParser, async (req, res) => {
+    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const image = req.body.url
+    const imageName = req.body.name
+    const quantity = req.body.quantity || 20
+    res.setHeader("Content-Type", "text/html")
+    try {
+        const colorPallete = await getColorPalleteByUrl(image, quantity)
+        const rgb = getRgbFromPallete(colorPallete)
+        const sorted = sortColors(rgb)
+        let imageGen = await generateImagePalette({ name: imageName, palette: sorted, url: image })
+
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imageGen.length
+        });
+        return res.end(imageGen)
+
+        // const { data } = await saveImagePalette({ url: image, palette: sorted, name: imageName })
 
 
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
+    }
 
+})
+
+app.post('/api/tweet/color/:id', jsonParser, async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const id = req.params.id
+    const { error, data } = await getimagePaletteById(id)
+    const img = await generateImage(id)
+    if (!error) {
+        const res = await postPaletteColorTweet(data[0], img)
+        console.log(res)
+        return res.end("ok")
+    }
+    return res.end("error")
+})
+
+app.get('/api/color/:imgid', async (req, res) => {
+    const id = req.params.imgid
+    const { error, data } = await getimagePaletteById(id)
+    res.setHeader("Content-Type", "text/html")
+    if (!error) {
+        const img = data[0]
+        const imageToSend = await generateImagePalette(img)
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imageToSend.length
+        });
+        return res.end(imageToSend)
+    }
+    res.end("error")
+})
 
 app.get('/api/supabase/tweets', async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
