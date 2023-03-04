@@ -1,0 +1,11 @@
+{
+  "name": "color_palette_gen",
+  "version": "0.1.0",
+  "files": [
+    "color_palette_gen_bg.wasm",
+    "color_palette_gen.js",
+    "color_palette_gen.d.ts"
+  ],
+  "main": "color_palette_gen.js",
+  "types": "color_palette_gen.d.ts"
+}
