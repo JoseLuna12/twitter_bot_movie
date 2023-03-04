@@ -34,7 +34,8 @@ const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalett
 const { generateImage } = require("./utils/color/api");
 
 // import init, { get_image_color_palette } from "color_palette_gen";
-const { get_image_color_palette } = require("color_palette_gen")
+const { get_image_color_palette } = require("color_palette_gen");
+const { fileTypeFromBuffer } = require("file-type");
 
 const app = express()
 var jsonParser = bodyParser.json()
@@ -116,11 +117,36 @@ function toBuffer(arrayBuffer) {
     return buffer;
 }
 
+app.get('/api/color/wasm', jsonParser, async (req, res) => {
+    const image = req.query.url
+    const quantity = req.query.quantity || 21
+    res.setHeader("Content-Type", "text/html")
+    try {
+
+        const image_buffer = await getBufferFromImage(image)
+
+        let fileType = await fileTypeFromBuffer(image_buffer)
+
+        const unit8arr = new Uint8Array(image_buffer);
+        const result = new Uint8Array(get_image_color_palette(unit8arr, fileType.ext || "jpg", quantity))
+        const buff = Buffer.from(result);
+
+        res.writeHead(200, {
+            'Content-Type': fileType.mime || 'image/png',
+            'Content-Length': buff.length
+        });
+
+        return res.end(buff)
+
+    } catch (err) {
+        console.log(err)
+        return res.json({ error: err })
+    }
+
+})
+
 app.post('/api/color/wasm', jsonParser, async (req, res) => {
-    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
-
-    // await init()
-
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const image = req.body.url
     const imageName = req.body.name
     const quantity = req.body.quantity || 21

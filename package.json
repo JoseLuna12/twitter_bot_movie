@@ -23,6 +23,7 @@
     "cron": "^2.1.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "file-type": "^18.2.1",
     "node-html-to-image": "^3.2.4",
     "openai": "^3.1.0",
     "twitter-api-v2": "^1.12.9"
