@@ -1,4 +1,4 @@
-const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread, saveToBucket, getImageFromBucket } = require("../../database")
+const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread, saveToBucket, getImageFromBucket, saveToLater } = require("../../database")
 const twitterClient = require("./client")
 const { getBufferFromImage, transformImageWithPalette } = require("./utl")
 
@@ -224,28 +224,40 @@ async function personTweetFormat(person, options) {
     return { ...tweet, dbId }
 }
 
+async function saveToTweetLater(id) {
+    return saveToLater(id)
+}
+
 async function movieToTweet(movie, options = {}, type = "") {
     console.log(options)
+    let response
     if (type == "palette") {
-        return await paletteTweetFormat(movie, options)
+        response = await paletteTweetFormat(movie, options)
     }
     if (type == "list") {
-        return await listTweetFormat(movie, options)
+        response = await listTweetFormat(movie, options)
     }
     if (type == "cinematography") {
-        return await cinematographyTweetFormat(movie, options)
+        response = await cinematographyTweetFormat(movie, options)
     }
     if (type == "soundtrack") {
-        return await soundtrackTweetFormat(movie, options)
+        response = await soundtrackTweetFormat(movie, options)
     }
 
     if (type == "director") {
-        return await personTweetFormat(movie, options)
+        response = await personTweetFormat(movie, options)
     }
 
     if (type == "person") {
-        return await personTweetFormat(movie, options)
+        response = await personTweetFormat(movie, options)
     }
+
+    if (options?.Later) {
+        const dbId = response.dbId;
+        await saveToTweetLater(dbId)
+        console.log("saved to later table")
+    }
+    return response
 }
 
 async function getTweetContent(tweetData) {

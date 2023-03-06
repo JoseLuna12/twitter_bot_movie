@@ -243,7 +243,7 @@ app.post('/api/tweet/unretweet', jsonParser, async (req, res) => {
 })
 
 app.post('/api/palette/', jsonParser, async (req, res) => {
-    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const name = req.body.name
     const id = req.body.id
     const options = req.body.options

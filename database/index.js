@@ -5,6 +5,10 @@ const supabaseAnonKey = process.env.SUPABASE_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+function saveToLater(id) {
+    return supabase.from("tweet_later").insert({ movie_tweetid: id }).select("id")
+}
+
 function saveToBucket(image, name) {
     return supabase.storage.from("palette-images").upload(name, image)
 }
@@ -91,4 +95,4 @@ function getSupabaseID(obj) {
 
 }
 
-module.exports = { add, addv2, saveToBucket, getImageFromBucket, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }
+module.exports = { add, addv2, saveToLater, saveToBucket, getImageFromBucket, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }
