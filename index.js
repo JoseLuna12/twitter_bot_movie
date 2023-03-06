@@ -25,7 +25,7 @@ const express = require('express')
 const cors = require('cors')
 
 var bodyParser = require('body-parser');
-const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById } = require("./database");
+const { getTweetById, getSupabaseData, updateTweetById, getSupabaseID, deleteTweetById, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById, getLaterTweets, deleteLaterById } = require("./database");
 const { getBufferFromImage, getBolbFromImage } = require("./utils/twitterapi/utl");
 const { getColorPalleteByUrl, getRgbFromPallete, sortColors, generateImagePalette, htmlToImage } = require("./utils/color");
 const { generateImage } = require("./utils/color/api");
@@ -227,6 +227,15 @@ app.get('/api/supabase/tweets', async (req, res) => {
     return res.json({ data })
 })
 
+app.get('/api/supabase/later_tweets', async (req, res) => {
+    if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const { data } = await getLaterTweets()
+    const response = data.map(d => {
+        return d.movie_tweetid
+    })
+    return res.json({ data: response })
+})
+
 app.get('/api/tweet/retweet/:id', async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
     const values = await retweetById(req.params.id)
@@ -345,6 +354,10 @@ app.delete('/api/supabase/tweet/:id', async (req, res) => {
     if (tweetValues?.thread_ids?.length) {
         const tweetsToDelete = tweetValues?.thread_ids.map(tw => deleteTweetById(tw))
         await Promise.all(tweetsToDelete)
+    }
+    if (tweetValues?.later_id) {
+        console.log(tweetValues.later_id)
+        await deleteLaterById(tweetValues?.later_id)
     }
     await deleteTweetById(id)
     return res.json("deleted")

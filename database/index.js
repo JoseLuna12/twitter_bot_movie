@@ -13,6 +13,14 @@ function saveToBucket(image, name) {
     return supabase.storage.from("palette-images").upload(name, image)
 }
 
+function deleteLaterById(id) {
+    return supabase.from("tweet_later").delete().eq('id', id)
+}
+
+function getLaterTweets() {
+    return supabase.from("tweet_later").select('movie_tweetid, movie_tweetid(*)')
+}
+
 function getImageFromBucket(bucket, image) {
     return supabase.storage.from(bucket).getPublicUrl(image)
 }
@@ -95,4 +103,4 @@ function getSupabaseID(obj) {
 
 }
 
-module.exports = { add, addv2, saveToLater, saveToBucket, getImageFromBucket, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }
+module.exports = { add, addv2, saveToLater, deleteLaterById, getLaterTweets, saveToBucket, getImageFromBucket, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }

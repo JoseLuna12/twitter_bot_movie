@@ -21,37 +21,9 @@ const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
 
 
 async function testFunction() {
-    // const { data: { id } } = await twitterClient.v2.me()
-    // // const test = await twitterClient.v2.retweet(id, "1598811395466100736")
-    // const test = await twitterClient.v2.unretweet(id, "1598811395466100736")
-    // console.log(test)
-
-    const { data, error } = await supabaseClient.from("movies_tweet").select().is("thread_ids", null).is("posted", true).order('last_retweeted_date', { ascending: true });
-    let retweetCandidate = await getRetweetCandidate(null, data, supabaseClient)
-    // await retweetById(req.params.id)
-
-    console.log(retweetCandidate)
+    const { data: test } = await supabaseClient.from("tweet_later").select('movie_tweetid, movie_tweetid(*)')
+    console.log(test)
 }
 
-
-async function getRetweetCandidate(currentCandidate, list, client) {
-    if (currentCandidate == null) {
-        currentCandidate = list.pop()
-        if (currentCandidate.tweet_id && currentCandidate.tweet_type != "thread") {
-            const { data, error } = await client.from("movies_retweeted").select().eq('tweet_id', currentCandidate.tweet_id)
-            data.forEach(d => {
-                if (d.status == "RETWEETED") {
-                    currentCandidate = null
-                }
-            })
-        } else {
-            currentCandidate = null
-        }
-        return getRetweetCandidate(currentCandidate, list, supabaseClient)
-    }
-    else {
-        return currentCandidate
-    }
-}
 
 testFunction()

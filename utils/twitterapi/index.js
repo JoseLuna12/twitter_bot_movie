@@ -254,8 +254,10 @@ async function movieToTweet(movie, options = {}, type = "") {
 
     if (options?.Later) {
         const dbId = response.dbId;
-        await saveToTweetLater(dbId)
-        console.log("saved to later table")
+        let laterObject = await saveToTweetLater(dbId)
+        let laterId = getSupabaseID(laterObject)
+        await updateTweetById(dbId, { later_id: laterId })
+        console.log("saved to later table", laterId)
     }
     return response
 }
