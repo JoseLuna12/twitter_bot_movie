@@ -5,43 +5,50 @@ const supabaseAnonKey = process.env.SUPABASE_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+function saveToBucket(image, name) {
+    return supabase.storage.from("palette-images").upload(name, image)
+}
 
-function addv2(values){
+function getImageFromBucket(bucket, image) {
+    return supabase.storage.from(bucket).getPublicUrl(image)
+}
+
+function addv2(values) {
     return supabase.from("movies_tweet").insert(values).select("id")
 }
 
-function getTweetById(id){
+function getTweetById(id) {
     return supabase.from("movies_tweet").select().eq('id', id)
 }
 
-function getAllTweets(){
+function getAllTweets() {
     return supabase.from("movies_tweet").select()
 }
 
-function updateTweetById(id, data){
+function updateTweetById(id, data) {
     return supabase.from("movies_tweet").update(data).eq('id', id).select("id")
 }
 
-function deleteTweetById(id){
+function deleteTweetById(id) {
     return supabase.from("movies_tweet").delete().eq('id', id)
 }
 
-function addIdsToThread(ids = []){
+function addIdsToThread(ids = []) {
     const [parentId, ...childIds] = ids
-    return supabase.from("movies_tweet").update({thread_ids: childIds}).eq('id', parentId).select("id")
+    return supabase.from("movies_tweet").update({ thread_ids: childIds }).eq('id', parentId).select("id")
 }
 
-async function removeIdToThread(parentId, childId){
+async function removeIdToThread(parentId, childId) {
     const parentTweet = getSupabaseData(await getTweetById(parentId))
     const newThreadIds = parentTweet?.thread_ids.filter(thrId => thrId != childId)
-    return supabase.from("movies_tweet").update({thread_ids: newThreadIds}).eq('id', parentId).select("id")
+    return supabase.from("movies_tweet").update({ thread_ids: newThreadIds }).eq('id', parentId).select("id")
 }
 
-function saveImagePalette(image){
+function saveImagePalette(image) {
     return supabase.from("images_palette").insert(image).select("id")
 }
 
-function getimagePaletteById(id){
+function getimagePaletteById(id) {
     return supabase.from("images_palette").select().eq('id', id)
 }
 
@@ -63,25 +70,25 @@ async function addThreadById({ id, thread, tweet_id }) {
     return supabase.from("movies_tweeted").update({ thread, tweet_id }).eq('id', id).select("id")
 }
 
-function getSupabaseData(obj){
-    const {error, data} = obj
-    if(error){
+function getSupabaseData(obj) {
+    const { error, data } = obj
+    if (error) {
         throw new Error("error creating tweet into db")
     }
-    else{
+    else {
         return data[0]
     }
 }
 
-function getSupabaseID(obj){
-    if(obj.error){
+function getSupabaseID(obj) {
+    if (obj.error) {
         console.log(obj.error)
         throw new Error("error creating tweet into db")
     }
-    else{
+    else {
         return obj.data[0].id
     }
 
 }
 
-module.exports = { add, addv2, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread,removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }
+module.exports = { add, addv2, saveToBucket, getImageFromBucket, addTweetId, addThreadById, db: supabase, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, deleteTweetById, addIdsToThread, removeIdToThread, getAllTweets, saveImagePalette, getimagePaletteById }

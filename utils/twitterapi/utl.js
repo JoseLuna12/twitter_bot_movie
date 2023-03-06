@@ -1,4 +1,16 @@
 const axios = require('axios');
+const { get_image_color_palette } = require("../palette/color_palette_gen")
+
+async function transformImageWithPalette(image) {
+    const image_buffer = await getBufferFromImage(image)
+
+    let mime = getMimeTypeFromArrayBuffer(image_buffer)
+
+    const unit8arr = new Uint8Array(image_buffer);
+    const result = new Uint8Array(get_image_color_palette(unit8arr, mime?.ext ?? 'jpg', 21))
+    const buff = Buffer.from(result);
+    return { buffer: buff, mime }
+}
 
 function getMimeTypeFromArrayBuffer(arrayBuffer) {
     const uint8arr = new Uint8Array(arrayBuffer)
@@ -38,4 +50,4 @@ async function getBolbFromImage(url) {
     // const blob = Blob.
 }
 
-module.exports = { getBufferFromImage, getBolbFromImage }
+module.exports = { getBufferFromImage, getBolbFromImage, transformImageWithPalette, getMimeTypeFromArrayBuffer }

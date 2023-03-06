@@ -242,6 +242,24 @@ app.post('/api/tweet/unretweet', jsonParser, async (req, res) => {
     return res.json({ values })
 })
 
+app.post('/api/palette/', jsonParser, async (req, res) => {
+    // if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }
+    const name = req.body.name
+    const id = req.body.id
+    const options = req.body.options
+    const type = req.body.type || 'palette'
+    const images = req.body.images || []
+
+    try {
+        const movie = await movieQuery({ name, id }, images)
+        const paletteMovieObject = await movieToTweet(movie, options, type)
+        res.json({ movieTweet: paletteMovieObject })
+    } catch (err) {
+        console.log(err)
+        res.json({ error: "there was a problem: " + `${err}` })
+    }
+})
+
 //create movie tweet
 app.post('/api/movie/', jsonParser, async (req, res) => {
     if (!(req.headers.auth === process.env.PASS)) { return res.send("no auth") }

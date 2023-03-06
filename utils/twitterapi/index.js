@@ -1,6 +1,6 @@
-const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread } = require("../../database")
+const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread, saveToBucket, getImageFromBucket } = require("../../database")
 const twitterClient = require("./client")
-const { getBufferFromImage } = require("./utl")
+const { getBufferFromImage, transformImageWithPalette } = require("./utl")
 
 function uploadMedia(image) {
     return twitterClient.v1.uploadMedia(image, { mimeType: "JPG", target: "tweet" })
@@ -17,6 +17,7 @@ const movieHashtags = {
     cinematography: `#Cinematography #AppreciationPost`,
     soundtrack: `#MovieScore #Spotify`,
     director: `#Director`,
+    palette: '#Palette #Color',
     person: ``,
     featuredHashtags: `#Featuring`,
     transformToHashtag: (text) => {
@@ -28,6 +29,35 @@ const movieHashtags = {
             return ""
         }
     }
+}
+
+async function paletteTweetFormat(movie, options) {
+    const year = movie.release_date ? `(${movie.release_date})` : ""
+    const imageToUse = movie.topImages
+    const head_palette = "🎨 Color palette from: ";
+
+    const head = `${head_palette}${movie.title}\nDir: ${movie.director} ${year}🎬`
+
+    const hashtag = `${movieHashtags.transformToHashtag(movie.title)} ${movieHashtags.palette}`
+
+    const curr_time = new Date()
+
+    const { buffer, mime } = await transformImageWithPalette(imageToUse)
+    const { data } = await saveToBucket(buffer, `${movie.title}-palette-${curr_time.getTime()}.${mime?.ext ?? 'jpg'}`)
+
+
+    const { data: publicUrlData } = await getImageFromBucket("palette-images", `${data.path}`)
+
+    const tweet = {
+        head,
+        body: "",
+        hashtag,
+        images: [publicUrlData.publicUrl]
+    }
+    const supabase = await addv2({ ...tweet, tweet_type: "Palette", url: "" })
+    const dbId = getSupabaseID(supabase)
+
+    return { ...tweet, dbId }
 }
 
 async function listTweetFormat(movie, options) {
@@ -196,6 +226,9 @@ async function personTweetFormat(person, options) {
 
 async function movieToTweet(movie, options = {}, type = "") {
     console.log(options)
+    if (type == "palette") {
+        return await paletteTweetFormat(movie, options)
+    }
     if (type == "list") {
         return await listTweetFormat(movie, options)
     }
