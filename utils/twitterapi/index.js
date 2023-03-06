@@ -1,4 +1,4 @@
-const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread, saveToBucket, getImageFromBucket, saveToLater } = require("../../database")
+const { addv2, getSupabaseID, getTweetById, getSupabaseData, updateTweetById, addIdsToThread, saveToBucket, getImageFromBucket, saveToLater, deleteLaterById } = require("../../database")
 const twitterClient = require("./client")
 const { getBufferFromImage, transformImageWithPalette } = require("./utl")
 
@@ -315,6 +315,9 @@ async function postTweetById(id) {
         const tweetThreads = await getTreadFromTweet(tweetData.thread_ids)
         await postThread(tweetData.thread_ids, [tweetContent, ...tweetThreads])
         return
+    }
+    if (tweetData?.later_id) {
+        await deleteLaterById(tweetData?.later_id)
     }
     await postSingleTweet(id, tweetContent)
     return
